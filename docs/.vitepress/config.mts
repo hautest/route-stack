@@ -161,7 +161,7 @@ export default defineConfig({
         nav: [
           { text: "Guide", link: "/guide/introduction" },
           { text: "API", link: "/reference/api" },
-          { text: "Demo", link: `${base}demo/`, target: "_blank" },
+          { text: "Demo", link: "/demo/", target: "_blank" },
         ],
         sidebar: sidebar("", en),
         editLink: {
@@ -179,7 +179,7 @@ export default defineConfig({
         nav: [
           { text: "가이드", link: "/ko/guide/introduction" },
           { text: "API", link: "/ko/reference/api" },
-          { text: "데모", link: `${base}demo/`, target: "_blank" },
+          { text: "데모", link: "/demo/", target: "_blank" },
         ],
         sidebar: sidebar("/ko", ko),
         outline: { label: "이 페이지에서" },
