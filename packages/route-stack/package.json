@@ -1,0 +1,88 @@
+{
+  "name": "route-stack",
+  "version": "0.0.0",
+  "description": "Native-app-like screen stack for web routers: kept screens and slide transitions with one wrapper.",
+  "keywords": [
+    "navigation",
+    "next",
+    "react",
+    "react-router",
+    "router",
+    "stack",
+    "swipe-back",
+    "tanstack-router",
+    "transition",
+    "webview"
+  ],
+  "homepage": "https://hautest.github.io/route-stack/",
+  "bugs": "https://github.com/hautest/route-stack/issues",
+  "license": "MIT",
+  "author": "hautest",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hautest/route-stack.git",
+    "directory": "packages/route-stack"
+  },
+  "files": [
+    "dist"
+  ],
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./next": {
+      "types": "./dist/adapters/next.d.ts",
+      "default": "./dist/adapters/next.js"
+    },
+    "./react-router": {
+      "types": "./dist/adapters/react-router.d.ts",
+      "default": "./dist/adapters/react-router.js"
+    },
+    "./tanstack-router": {
+      "types": "./dist/adapters/tanstack-router.d.ts",
+      "default": "./dist/adapters/tanstack-router.js"
+    }
+  },
+  "scripts": {
+    "build": "rslib build && node scripts/check-dist.mjs",
+    "prepack": "cp ../../LICENSE .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "devDependencies": {
+    "@rslib/core": "1.0.3",
+    "@tanstack/react-router": "1.170.44",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "@vitest/browser-playwright": "5.0.3",
+    "next": "16.4.0",
+    "playwright": "1.64.0",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "react-router": "8.4.0",
+    "typescript": "7.0.2",
+    "vite": "8.3.4",
+    "vitest": "5.0.3"
+  },
+  "peerDependencies": {
+    "@tanstack/react-router": ">=1.122",
+    "next": ">=16",
+    "react": ">=19.2",
+    "react-dom": ">=19.2",
+    "react-router": ">=6.30"
+  },
+  "peerDependenciesMeta": {
+    "@tanstack/react-router": {
+      "optional": true
+    },
+    "next": {
+      "optional": true
+    },
+    "react-router": {
+      "optional": true
+    }
+  }
+}

@@ -1,0 +1,5 @@
+# Standalone pnpm project (not a member of ../../pnpm-workspace.yaml):
+# React Native's Gradle/CocoaPods paths expect a flat app-local node_modules.
+packages:
+  - .
+nodeLinker: hoisted

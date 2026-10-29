@@ -1,0 +1,26 @@
+{
+  "name": "route-stack-docs",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "pnpm --filter route-stack-demo... build && vitepress dev",
+    "build": "pnpm --filter route-stack-demo... build && vitepress build",
+    "preview": "vitepress preview",
+    "typecheck": "node scripts/check-snippets.mjs"
+  },
+  "devDependencies": {
+    "@tanstack/react-router": "^1.170.44",
+    "@types/react": "^19.2.18",
+    "next": "^16.4.0",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "react-router": "^8.4.0",
+    "route-stack": "workspace:*",
+    "typescript": "~6.0.2",
+    "uqr": "^0.1.3",
+    "vitepress": "^1.6.4",
+    "vitepress-plugin-group-icons": "^1.8.1",
+    "vue": "^3.5.0"
+  }
+}

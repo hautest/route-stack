@@ -1,0 +1,24 @@
+{
+  "name": "route-stack-monorepo",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "pnpm -r build",
+    "typecheck": "pnpm -r typecheck",
+    "lint": "oxlint",
+    "format": "oxfmt",
+    "format:check": "oxfmt --check",
+    "test": "pnpm -r test",
+    "version-packages": "changeset version",
+    "release": "pnpm -C packages/route-stack build && changeset publish"
+  },
+  "devDependencies": {
+    "@changesets/cli": "3.0.3",
+    "oxfmt": "0.72.0",
+    "oxlint": "1.87.0"
+  },
+  "engines": {
+    "node": ">=24"
+  },
+  "packageManager": "pnpm@11.22.0"
+}
