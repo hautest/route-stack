@@ -39,7 +39,7 @@ traverse 자체에는 방향이 없습니다. 그래서 스택은 두 screen이 
 
 보관하는 screen 수에는 제한이 없습니다.
 
-## Navigation API와 대체 구현 {#navigation-api-and-the-fallback}
+## Navigation API와 polyfill {#navigation-api-and-the-fallback}
 
 Navigation API를 쓸 수 있으면 스택은 항목 정보를 Navigation API에서 읽습니다. 쓸 수 없는 환경(Safari 26.2 미만)에서는 `history.state`에 key와 index를 저장합니다.
 

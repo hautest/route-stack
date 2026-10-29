@@ -16,7 +16,7 @@ A running slide is in one phase:
 | `play` | It plays to one end                                                 |
 | `rest` | It reached the end, but the back a swipe sent has not committed yet |
 
-`await` marks a slide waiting for the commit of the back its swipe sent. There are no timers.
+`await` marks a slide waiting for the commit of the back its swipe sent.
 
 ## Rules
 
@@ -40,6 +40,5 @@ A running slide is in one phase:
 - **Screens are decided by history, not by renders.** A router may not render for an entry (a query push in Next), or render it late (loaders). Deciding when the entry becomes current never misses one.
 - **One commit point.** The core only acts on committed renders. React may render twice or throw a render away; the result is the same.
 - **One exit.** Every slide ends in settle, whether it played, was cancelled, or had no animation.
-- **No timers.** Every wait ends on an event: a commit, a played animation, a history change.
 - **`display` is never saved and restored.** React may hide or show a screen while it is lifted; restoring an old value would swap screens.
 - **No negative `playbackRate`, no `reverse()`.** iOS WebKit ends such animations at once. Playing to the other end builds a new animation from the values on screen.

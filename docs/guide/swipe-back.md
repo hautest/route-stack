@@ -78,10 +78,8 @@ The swipe is decided in this order.
 5. **After release:** the rest of the slide plays with the transition's duration and easing.
 
 - There is nothing laid over the page: a tap at the edge reaches the button under it, and a vertical drag from the edge scrolls.
-- Once the swipe started, the page cannot scroll under it, however the finger drifts.
 - A swipe can only start when there is a screen to go back to. On the first screen after a reload or a deep link there is none: no swipe (the back button still works).
-- While a transition plays, no swipe starts.
-- After the release, `history.back()` is called on the next frame, and the router handles it as any back.
+- After the release, `history.back()` is called, and the router handles it as any back.
 
 ## What the page keeps
 

@@ -70,7 +70,3 @@ onBackPressedDispatcher.addCallback(this) {
 :::
 
 페이지는 일반적인 `popstate`를 받고, 스택이 back 전환을 재생합니다. Android에서는 스택의 스와이프가 기본으로 꺼져 있습니다. 자세한 내용은 [스와이프 백](./swipe-back#android)에 있습니다.
-
-## Android의 쿠키 {#cookies-on-android}
-
-Android WebView에서는 `document.cookie`를 읽을 때마다 브라우저 프로세스로 동기 호출이 일어납니다(약 1ms). 보관된 screen이 다시 보이면 effect가 다시 실행되므로, effect에서 쿠키를 읽는 페이지는 그때마다 이 비용을 다시 치릅니다. 인증 토큰은 한 번만 읽어서 메모리에 두는 것을 권합니다.

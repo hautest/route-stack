@@ -1,6 +1,6 @@
 # 스크롤과 레이어 {#scroll-layers}
 
-## 스크롤은 screen마다 따로 {#scroll-is-per-screen}
+## screen별 스크롤 위치 {#scroll-is-per-screen}
 
 window 스크롤은 스택이 관리하며, screen마다 위치를 따로 기억합니다. 목록을 절반쯤 스크롤한 상태로 다른 screen에 갔다가 돌아오면 그 위치 그대로입니다.
 
@@ -13,7 +13,7 @@ window 스크롤은 스택이 관리하며, screen마다 위치를 따로 기억
 
 ## 전환 중의 모습 {#how-a-slide-looks}
 
-전환하는 동안 두 screen은 페이지에서 떠올라 viewport 크기의 `position: fixed` 레이어가 됩니다. 각 레이어에는 해당 screen의 스크롤 위치에 맞는 내용이 보입니다. 전환이 끝나면 레이어는 다시 페이지로 내려옵니다. 그사이 레이어 뒤에서는 window가 도착할 screen의 위치로 미리 스크롤되어 있으므로, 레이어가 내려와도 화면이 바뀌지 않습니다.
+전환하는 동안 두 screen은 페이지에서 떠올라 viewport 크기의 `position: fixed` 레이어가 됩니다. 각 레이어에는 해당 screen의 스크롤 위치에 맞는 내용이 보입니다. 전환이 끝나면 레이어는 다시 페이지로 내려옵니다. 그사이 레이어 뒤에서는 window가 이미 도착할 screen의 위치로 옮겨져 있으므로, 레이어가 내려와도 화면이 바뀌지 않습니다.
 
 CSS에는 다음과 같은 영향이 있습니다.
 

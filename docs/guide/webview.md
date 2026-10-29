@@ -70,7 +70,3 @@ onBackPressedDispatcher.addCallback(this) {
 :::
 
 The page receives an ordinary `popstate`, and the stack plays the back transition. The stack's swipe is off on Android by default: see [Swipe Back](./swipe-back#android).
-
-## Cookies on Android
-
-On Android WebView, every read of `document.cookie` is a synchronous call to the browser process (about 1ms). A page that reads a cookie in effects pays it again each time a kept screen shows, since effects re-run on reveal. Read auth tokens once and keep them in memory.
