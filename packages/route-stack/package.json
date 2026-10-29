@@ -1,6 +1,6 @@
 {
   "name": "route-stack",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "Native-app-like screen stack for web routers: kept screens and slide transitions with one wrapper.",
   "keywords": [
     "navigation",
