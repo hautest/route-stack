@@ -18,3 +18,14 @@
 .VPHero .image-bg {
   display: none;
 }
+/* On a phone the hero image is the "open the demo" link only (PhoneDemo):
+   no square box held for it. */
+@media (max-width: 640px) {
+  .VPHero .image-container {
+    width: auto;
+    height: auto;
+  }
+  .VPHero .image {
+    margin: 0 0 24px;
+  }
+}

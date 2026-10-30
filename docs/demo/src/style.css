@@ -60,7 +60,10 @@ a {
   pointer-events: none;
 }
 .page {
+  /* svh: Safari's 100vh is the height with its toolbar hidden, which left a short
+     page a little scroll with the toolbar shown. */
   min-height: 100vh;
+  min-height: 100svh;
   padding: 76px 16px 48px;
   box-sizing: border-box;
   background: #f5f5f7;

@@ -18,17 +18,28 @@ const src = computed(() => {
 });
 
 const qr = ref("");
+// On a phone the frame does not fit, and taps in it add entries to the page's
+// history (an iframe shares it), so the back button stays on the page. A link
+// opens the demo full screen instead, where the swipe is a real touch.
+const framed = ref(false);
 onMounted(() => {
   qr.value = renderSVG(new URL(src.value, location.href).href, { border: 1 });
+  framed.value = !matchMedia("(max-width: 640px)").matches;
 });
 
 const reload = ref(0);
+const openDemo = () => location.assign(src.value);
 </script>
 
 <template>
   <div class="phone-demo">
+    <!-- A full page load: the docs' router would take /demo/ for one of its pages. -->
+    <a class="open" :href="src" @click.prevent="openDemo">
+      {{ lang === "ko" ? "데모 열기" : "Open the demo" }}
+    </a>
     <div class="phone">
       <iframe
+        v-if="framed"
         :key="reload"
         :src="src"
         title="route-stack demo"
@@ -93,9 +104,22 @@ button {
   border: 1px solid var(--vp-c-divider);
   border-radius: 6px;
 }
+.open {
+  display: none;
+}
 @media (max-width: 640px) {
-  .side {
+  .side,
+  .phone {
     display: none;
+  }
+  .open {
+    display: inline-block;
+    padding: 10px 20px;
+    border-radius: 20px;
+    background: var(--vp-c-brand-1);
+    color: #fff;
+    font-weight: 600;
+    text-decoration: none;
   }
 }
 </style>

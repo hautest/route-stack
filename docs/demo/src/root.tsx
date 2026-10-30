@@ -26,6 +26,14 @@ const pick = <T extends string>(
   return values.includes(asked as T) ? (asked as T) : fallback;
 };
 
+// Browsers on iOS (Safari and the others, all WebKit) have their own edge swipe
+// back, and both ran at once: there the demo starts with the stack's swipe off
+// (the select still turns it on).
+const iosSafari =
+  /iP(hone|ad|od)/.test(navigator.userAgent) ||
+  (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+const swipeOff = onAndroid() || iosSafari;
+
 let anywhere = false;
 mouseAsTouch(() => anywhere);
 
@@ -35,7 +43,7 @@ export function Root() {
   );
   const [swipe, setSwipe] = useState(() => pick("swipe", swipes, "default"));
 
-  const mode = swipe === "default" ? (onAndroid() ? "false" : "edge") : swipe;
+  const mode = swipe === "default" ? (swipeOff ? "false" : "edge") : swipe;
   useEffect(() => {
     anywhere = mode === "full";
     document.documentElement.dataset.swipe = mode;
@@ -50,9 +58,7 @@ export function Root() {
           const chosen = presets[preset];
           return chosen === null ? defaultAnimate(from, to, direction) : chosen;
         }}
-        swipe={
-          swipe === "default" ? undefined : swipe === "false" ? false : swipe
-        }
+        swipe={mode === "false" ? false : mode}
       >
         <Outlet />
       </Stack>
@@ -83,7 +89,9 @@ export function Root() {
       </header>
       <p className="hint">
         {mode === "false"
-          ? "Swipe is off: the back button still animates"
+          ? iosSafari && swipe === "default"
+            ? "Swipe is off in Safari, which has its own: the back button still animates"
+            : "Swipe is off: the back button still animates"
           : matchMedia("(pointer: coarse)").matches
             ? `Swipe ${where} to go back`
             : canSwipeWithMouse()
