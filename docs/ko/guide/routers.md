@@ -53,7 +53,7 @@ import { Stack } from "route-stack/tanstack-router";
 - 경로는 outlet이 렌더하는 마지막 match에서 가져옵니다. 그래서 다음 페이지를 로드하는 동안에도 한 screen에 다른 페이지 내용이 섞이지 않습니다.
 - 떠나기 전에 확인을 받는 blocker(`useBlocker`)는 스와이프 백을 막습니다. screen은 제자리로 돌아가고, 사용자가 확인하면 별도의 back으로 이동합니다.
 - `defaultViewTransition`은 꺼야 합니다.
-- `scrollRestoration: true`는 그대로 둬도 됩니다.
+- 클라이언트에서만 렌더하는 앱은 `scrollRestoration: true`를 그대로 둬도 됩니다. TanStack Start처럼 SSR을 쓰면 `scrollRestoration: () => false`로 바꾸세요. hydration 전에 스크롤해도 TanStack이 hydration 직후 window를 맨 위로 올리기 때문입니다. `false`로는 이 동작이 꺼지지 않고 새로고침할 때 스크롤 위치도 복원되지 않습니다. 이동할 때의 스크롤 복원은 스택이 그대로 합니다.
 
 ### 더 빠른 내비게이션 경험 {#tanstack-faster-navigation}
 

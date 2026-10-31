@@ -7,7 +7,7 @@ window 스크롤은 스택이 관리하며, screen마다 위치를 따로 기억
 - 새 screen은 맨 위에서 시작합니다. `location.hash`가 가리키는 요소가 있으면 그 요소 위치에서 시작합니다(`scroll-margin-top` 반영).
 - 뒤로 가서 다시 보이는 screen은 저장해 둔 위치로 돌아갑니다.
 - 스택이 마운트되어 있는 동안 `history.scrollRestoration`은 `manual`입니다.
-- 라우터의 스크롤 복원(`<ScrollRestoration>`, TanStack `scrollRestoration`)은 켜 두어도 괜찮습니다. 스택이 그다음에 위치를 복원합니다.
+- 라우터의 스크롤 복원(`<ScrollRestoration>`, TanStack `scrollRestoration`)은 켜 두어도 괜찮습니다. 스택이 그다음에 위치를 복원합니다. 다만 TanStack Start처럼 SSR을 쓰면 TanStack이 hydration 직후 window를 맨 위로 올립니다. 설정은 [TanStack Router](/ko/guide/routers#tanstack-router)를 참고하세요.
 - 페이지 안의 스크롤 영역(`overflow: auto` 요소)은 위치가 그대로 유지됩니다. DOM이 남아 있으므로 브라우저가 알아서 유지합니다.
 - 같은 screen 안에서 이동할 때(`/page`에서 `/page#section`으로 갔다가 뒤로 올 때)는 스크롤을 복원하지 않습니다. screen이 바뀌지 않기 때문입니다.
 

@@ -4,7 +4,9 @@ import { routeTree } from "./routeTree.gen";
 export function getRouter() {
   const router = createTanStackRouter({
     routeTree,
-    scrollRestoration: true,
+    // SSR: a function returning false skips the scroll to top at hydration;
+    // `false` would not.
+    scrollRestoration: () => false,
     defaultPreload: "intent",
     defaultPreloadStaleTime: 0,
   });
