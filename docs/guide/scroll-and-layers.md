@@ -7,7 +7,7 @@ The stack owns the window scroll. Each screen keeps its own position: leave a li
 - A new screen starts at the top, or at the element `location.hash` points to (with its `scroll-margin-top`).
 - A screen you go back to gets its saved position.
 - `history.scrollRestoration` is set to `manual` while the stack is mounted.
-- Router scroll restoration (`<ScrollRestoration>`, TanStack `scrollRestoration`) can stay on; the stack restores after it.
+- Router scroll restoration (`<ScrollRestoration>`, TanStack `scrollRestoration`) can stay on; the stack restores after it. With SSR (TanStack Start), though, TanStack scrolls the window to the top when it hydrates: see [TanStack Router](/guide/routers#tanstack-router).
 - Scroll areas inside a page (`overflow: auto` elements) keep their own position: the browser keeps it, since the DOM stays.
 - Moving inside one screen (`/page` to `/page#section` and back) does not restore scroll: it is the same screen.
 

@@ -53,7 +53,7 @@ import { Stack } from "route-stack/tanstack-router";
 - The path is the one the outlet renders (its last match), so a screen never gets another page's content while the next page loads.
 - A blocker (`useBlocker`) that asks before leaving holds a swipe back: the screen slides back to rest, and leaving after the user confirms is a back of its own.
 - Turn off `defaultViewTransition`.
-- `scrollRestoration: true` can stay.
+- In an app rendered on the client only, `scrollRestoration: true` can stay. With SSR (TanStack Start), set `scrollRestoration: () => false`: TanStack scrolls the window to the top once it hydrates, even after a scroll made before then. `false` does not turn that off, and it also loses the scroll on reload. The stack still restores scroll on every move.
 
 ### Faster navigation {#tanstack-faster-navigation}
 
