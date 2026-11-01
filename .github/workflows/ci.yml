@@ -41,10 +41,26 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm lint
 
+  # A job per browser: the WebKit tests need a page per file (below), and
+  # the Chromium ones then run without the extra workers, whose load made
+  # their mid-slide checks miss the slide.
   test:
+    name: test (${{ matrix.name }})
     # macOS: Linux's WebKit build differs from Safari's (its Navigation API
     # among others), and the WebKit tests stand for iOS WebViews.
     runs-on: macos-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: chromium
+            browser: chromium
+            args: --project unit --project "browser (chromium)" --project "browser-basepath*"
+          - name: webkit
+            browser: webkit
+            # A page per file: WebKit allows a page 100 history writes per 10
+            # seconds, and files sharing a page go past it.
+            args: --project "browser (webkit)" --maxWorkers=7
     steps:
       - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v6
@@ -53,8 +69,5 @@ jobs:
           node-version: 24
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      # The browser tests run in Chromium and WebKit (the engine of iOS WebViews).
-      - run: pnpm -C packages/route-stack exec playwright install chromium webkit
-      # A page per browser-test file: WebKit allows a page 100 history writes
-      # per 10 seconds, and files sharing a page (a few cores) go past it.
-      - run: pnpm -C packages/route-stack test --maxWorkers=16
+      - run: pnpm -C packages/route-stack exec playwright install ${{ matrix.browser }}
+      - run: pnpm -C packages/route-stack exec vitest run ${{ matrix.args }}
