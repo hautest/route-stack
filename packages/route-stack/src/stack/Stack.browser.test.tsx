@@ -327,8 +327,10 @@ describe("Stack", () => {
   // A slide ending with the window moved drops its layers a frame later: a
   // navigation without animation in that frame changes the screen shown.
   test("a navigation without animation before a late drop leaves one screen shown", async () => {
+    // Long enough to scroll mid-slide on a slow machine too (a CI runner).
     app = mount({
-      animate: (_from, to) => (to.endsWith("/plain") ? false : fast),
+      animate: (_from, to) =>
+        to.endsWith("/plain") ? false : { ...fast, duration: 300 },
     });
     scrollTo(0, 700);
     await frame();
@@ -745,7 +747,8 @@ describe("regressions", () => {
   });
 
   test("an in-screen fixed element stays in place on its screen during a slide", async () => {
-    app = mount();
+    // Long enough to be mid-slide a frame in on a slow machine (a CI runner).
+    app = mount({ animate: () => ({ ...fast, duration: 1000 }) });
     scrollTo(0, 700);
     await frame();
     const homeButton = () =>
