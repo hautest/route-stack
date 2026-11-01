@@ -10,7 +10,7 @@
     "format:check": "oxfmt --check",
     "test": "pnpm -r test",
     "version-packages": "changeset version",
-    "release": "pnpm -C packages/route-stack build && changeset publish"
+    "release": "pnpm -C packages/route-stack build && node scripts/release.mjs"
   },
   "devDependencies": {
     "@changesets/cli": "3.0.3",

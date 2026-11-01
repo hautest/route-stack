@@ -26,12 +26,12 @@ jobs:
         with:
           node-version: 24
           cache: pnpm
-      # Trusted publishing needs npm 11.5.1 or later; pnpm hands the publish to it.
+      # Trusted publishing needs npm 11.5.1 or later (scripts/release.mjs).
       - run: npm install -g npm@latest
       - run: pnpm install --frozen-lockfile
       # With changesets pending: opens or updates a "Version Packages" PR.
       # When that PR is merged: builds and publishes to npm with provenance,
-      # through npm trusted publishing (no token).
+      # through npm trusted publishing (no token), then tags and releases it.
       - uses: changesets/action@v2
         with:
           version-script: pnpm version-packages
