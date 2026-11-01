@@ -55,4 +55,6 @@ jobs:
       - run: pnpm install --frozen-lockfile
       # The browser tests run in Chromium and WebKit (the engine of iOS WebViews).
       - run: pnpm -C packages/route-stack exec playwright install chromium webkit
-      - run: pnpm -C packages/route-stack test
+      # A page per browser-test file: WebKit allows a page 100 history writes
+      # per 10 seconds, and files sharing a page (a few cores) go past it.
+      - run: pnpm -C packages/route-stack test --maxWorkers=16
