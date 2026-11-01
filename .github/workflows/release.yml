@@ -1,43 +1,100 @@
 name: Release
 
+# Changesets' sub-actions, as its guide sets up trusted publishing: a job per
+# step, and `id-token: write` only on the one that publishes.
+# https://changesets.dev/guide/automating
 on:
   push:
     branches: [main]
 
+permissions: {}
+
 concurrency: ${{ github.workflow }}-${{ github.ref }}
 
-permissions:
-  contents: write
-  pull-requests: write
-  id-token: write
-
 jobs:
-  release:
-    # npm provenance needs a public repository: skipped while it is private.
-    if: ${{ !github.event.repository.private }}
+  # "version" with changesets pending, "publish" once their PR is merged.
+  select-mode:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      mode: ${{ steps.select-mode.outputs.mode }}
+      publish-plan-artifact-id: ${{ steps.select-mode.outputs.publish-plan-artifact-id }}
     steps:
       - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
       - uses: pnpm/action-setup@v6
-      # No registry-url: it writes an _authToken from an empty NODE_AUTH_TOKEN
-      # into .npmrc, and npm then skips the trusted-publishing (OIDC) exchange
-      # and publishes unauthenticated (E404).
       - uses: actions/setup-node@v7
         with:
-          node-version: 24
-          cache: pnpm
-      # Trusted publishing needs npm 11.5.1 or later; pnpm hands the publish to it.
-      - run: npm install -g npm@latest
+          node-version-file: .node-version
       - run: pnpm install --frozen-lockfile
-      # With changesets pending: opens or updates a "Version Packages" PR.
-      # When that PR is merged: builds and publishes to npm with provenance,
-      # through npm trusted publishing (no token).
-      - uses: changesets/action@v2
+      - id: select-mode
+        uses: changesets/action/select-mode@v2
+
+  # Opens or updates the "Version Packages" PR.
+  version:
+    needs: select-mode
+    if: needs.select-mode.outputs.mode == 'version'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v7
         with:
-          version-script: pnpm version-packages
-          publish-script: pnpm release
+          persist-credentials: false
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .node-version
+      - run: pnpm install --frozen-lockfile
+      - uses: changesets/action/version@v2
+        with:
           pr-title: "chore: version packages"
           commit-message: "chore: version packages"
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NPM_CONFIG_PROVENANCE: true
+
+  # No build cache for what gets published (npm's trusted-publishing guide).
+  pack:
+    needs: select-mode
+    if: needs.select-mode.outputs.mode == 'publish'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      pack-dir-artifact-id: ${{ steps.pack.outputs.pack-dir-artifact-id }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .node-version
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm -C packages/route-stack build
+      - id: pack
+        uses: changesets/action/pack@v2
+        with:
+          publish-plan-artifact-id: ${{ needs.select-mode.outputs.publish-plan-artifact-id }}
+
+  # Publishes through npm trusted publishing (OIDC, no token; provenance
+  # attached), then tags and makes the GitHub release.
+  publish:
+    needs: pack
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .node-version
+      - run: pnpm install --frozen-lockfile
+      - uses: changesets/action/publish@v2
+        with:
+          pack-dir-artifact-id: ${{ needs.pack.outputs.pack-dir-artifact-id }}
