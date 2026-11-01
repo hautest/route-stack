@@ -42,7 +42,9 @@ jobs:
       - run: pnpm lint
 
   test:
-    runs-on: ubuntu-latest
+    # macOS: Linux's WebKit build differs from Safari's (its Navigation API
+    # among others), and the WebKit tests stand for iOS WebViews.
+    runs-on: macos-latest
     steps:
       - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v6
@@ -52,5 +54,5 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       # The browser tests run in Chromium and WebKit (the engine of iOS WebViews).
-      - run: pnpm -C packages/route-stack exec playwright install --with-deps chromium webkit
+      - run: pnpm -C packages/route-stack exec playwright install chromium webkit
       - run: pnpm -C packages/route-stack test
