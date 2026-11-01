@@ -103,8 +103,21 @@ export function layersOf(
   const show = ({ host }: Layer) =>
     contentOf(host).style.removeProperty("display");
 
-  /** `offset` when already read, before other writes. */
-  const lift = (layer: Layer, zIndex: number, offset?: number) => {
+  /** The screen takes focus (an autoFocus, a focus in an effect), no taps. */
+  const allowFocus = (host: HTMLElement) => {
+    host.inert = false;
+    host.style.pointerEvents = "none";
+  };
+
+  /**
+   * `offset` when already read, before other writes. `inert: false` for the
+   * screen arriving: it takes focus.
+   */
+  const lift = (
+    layer: Layer,
+    zIndex: number,
+    { offset, inert = true }: { offset?: number; inert?: boolean } = {},
+  ) => {
     const { host } = layer;
     owners.set(host, owner);
     show(layer);
@@ -112,12 +125,16 @@ export function layersOf(
       position: "fixed",
       inset: "0",
       overflow: "hidden",
+      // A focus scrolls it in one step, folded whole (slide.ts): an app's
+      // smooth scrolling would be folded midway, its steps cut.
+      scrollBehavior: "auto",
       zIndex: String(zIndex),
       background: bg,
     });
     host.style.setProperty(OVERFLOW, "hidden");
     place(layer, offset);
-    host.inert = true;
+    if (inert) host.inert = true;
+    else allowFocus(host);
   };
 
   /** Back into the document: `shown`, or hidden as React hides it. */
@@ -133,6 +150,8 @@ export function layersOf(
       "z-index",
       "background",
       "box-shadow",
+      "scroll-behavior",
+      "pointer-events",
       OVERFLOW,
     ])
       host.style.removeProperty(property);
@@ -144,7 +163,10 @@ export function layersOf(
     else content.style.setProperty("display", "none", "important");
   };
 
-  return { show, place, lift, restore };
+  /** Still lifted by this slide: not by one that lifted it since. */
+  const owns = (host: HTMLElement) => owners.get(host) === owner;
+
+  return { show, place, lift, allowFocus, owns, restore };
 }
 
 // What makes an element contain its fixed descendants instead of the viewport:

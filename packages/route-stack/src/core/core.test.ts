@@ -61,6 +61,8 @@ vi.mock("../transition/slide", () => ({
       aim: (side: string) => control.calls.push(`aim ${side}`),
       retarget: (layer: Layer) =>
         control.calls.push(`retarget ${idOf(layer)} at ${layer.scroll}`),
+      // Not recorded: the slide makes the screen focusable, nothing seen.
+      unhold() {},
       reveal: () => control.calls.push("reveal"),
       end(current: Layer | null, now?: boolean) {
         control.ended = true;

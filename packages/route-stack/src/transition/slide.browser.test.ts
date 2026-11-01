@@ -126,7 +126,7 @@ describe("slide", () => {
     expect(offsetX(pair.leave.host)).toBeCloseTo(innerWidth, 0);
   });
 
-  test("a slide takes the focus from the screen leaving, not the one arriving", () => {
+  test("a slide takes the focus from the screen leaving, not the one arriving", async () => {
     const pair = screens();
     root = pair.root;
     const field = (host: HTMLElement) =>
@@ -139,9 +139,14 @@ describe("slide", () => {
     expect(document.activeElement).not.toBe(leaving);
     first.end(pair.enter, true);
 
-    // An autoFocus of the screen arriving lands before the slide starts.
+    // An autoFocus of the screen arriving lands before the slide starts, and
+    // stays through it (an inert host loses it by the next frame).
     arriving.focus();
-    slide(pair.enter, pair.leave, fast, false).end(pair.enter, true);
+    const second = slide(pair.enter, pair.leave, fast, false);
+    await new Promise((resolve) => requestAnimationFrame(resolve));
+    await new Promise((resolve) => requestAnimationFrame(resolve));
+    expect(document.activeElement).toBe(arriving);
+    second.end(pair.enter, true);
     expect(document.activeElement).toBe(arriving);
   });
 
