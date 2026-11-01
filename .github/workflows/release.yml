@@ -19,11 +19,15 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v6
+      # No registry-url: it writes an _authToken from an empty NODE_AUTH_TOKEN
+      # into .npmrc, and npm then skips the trusted-publishing (OIDC) exchange
+      # and publishes unauthenticated (E404).
       - uses: actions/setup-node@v7
         with:
           node-version: 24
           cache: pnpm
-          registry-url: https://registry.npmjs.org
+      # Trusted publishing needs npm 11.5.1 or later; pnpm hands the publish to it.
+      - run: npm install -g npm@latest
       - run: pnpm install --frozen-lockfile
       # With changesets pending: opens or updates a "Version Packages" PR.
       # When that PR is merged: builds and publishes to npm with provenance,
