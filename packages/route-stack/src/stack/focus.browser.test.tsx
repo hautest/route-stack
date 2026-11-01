@@ -137,8 +137,8 @@ for (const how of ["autoFocus", "effect"] as const)
   for (const where of ["top", "bottom"] as const)
     test(`a pushed screen's ${how} field at its ${where} keeps the focus, in view`, async () => {
       fields.set(at("/post"), { at: where, how });
-      // Long enough to look mid-slide in a slow headless WebKit too.
-      app = mount(300);
+      // Long enough to look mid-slide on a slow machine too (a CI runner).
+      app = mount(1000);
       const drops = recordFrames();
       app.push(at("/post"));
       // Mid-slide a focus that scrolled the layer is already the window's
