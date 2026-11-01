@@ -26,18 +26,43 @@ jobs:
         with:
           node-version: 24
           cache: pnpm
-      # Trusted publishing needs npm 11.5.1 or later (scripts/release.mjs).
+      # Trusted publishing needs npm 11.5.1 or later.
       - run: npm install -g npm@latest
       - run: pnpm install --frozen-lockfile
       # With changesets pending: opens or updates a "Version Packages" PR.
-      # When that PR is merged: builds and publishes to npm with provenance,
-      # through npm trusted publishing (no token), then tags and releases it.
       - uses: changesets/action@v2
+        id: changesets
         with:
           version-script: pnpm version-packages
-          publish-script: pnpm release
           pr-title: "chore: version packages"
           commit-message: "chore: version packages"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NPM_CONFIG_PROVENANCE: true
+
+      # With none (that PR merged): publishes the version unless it is on npm.
+      # The npm CLI, not `changeset publish`: in a pnpm workspace that publishes
+      # through pnpm, which does not do npm's trusted-publishing (OIDC) exchange.
+      - id: version
+        if: steps.changesets.outputs.hasChangesets == 'false'
+        run: |
+          version=$(node -p "require('./packages/route-stack/package.json').version")
+          echo "tag=route-stack@$version" >> "$GITHUB_OUTPUT"
+          if npm view "route-stack@$version" version > /dev/null 2>&1; then
+            echo "published=true" >> "$GITHUB_OUTPUT"
+          fi
+      - if: steps.version.outputs.tag && !steps.version.outputs.published
+        run: pnpm -C packages/route-stack build
+      - if: steps.version.outputs.tag && !steps.version.outputs.published
+        working-directory: packages/route-stack
+        run: npm publish --provenance --access public
+      - if: steps.version.outputs.tag && !steps.version.outputs.published
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ steps.version.outputs.tag }}
+        run: |
+          git tag "$TAG"
+          git push origin "$TAG"
+          # This version's section of the changelog, as the release notes.
+          awk -v v="## ${TAG#route-stack@}" '$0 == v { on = 1; next } /^## / { on = 0 } on' \
+            packages/route-stack/CHANGELOG.md > notes.md
+          gh release create "$TAG" --title "$TAG" --notes-file notes.md
