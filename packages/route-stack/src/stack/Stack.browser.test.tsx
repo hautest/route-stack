@@ -13,6 +13,18 @@ import {
 } from "vitest";
 import { Stack } from "./Stack";
 import {
+  dispatchTouch,
+  frame,
+  hosts,
+  lifted,
+  recordFrames,
+  scrollsWhenDropping,
+  settled,
+  wait,
+  type TouchOptions,
+} from "../test/browser";
+import { contentOf } from "../transition/layers";
+import {
   android,
   defaultAnimate,
   ios,
@@ -21,9 +33,6 @@ import {
 import type { AdapterProps, StackProps, Transition } from "../types";
 
 const fast: Transition = { ...ios, duration: 60 };
-
-const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-const frame = () => new Promise((resolve) => requestAnimationFrame(resolve));
 
 // Page height by path, for pages whose content changes height (a refetch
 // shows a shorter skeleton).
@@ -98,24 +107,6 @@ function mount(
   };
 }
 
-// Until no layer is up: the slide ended in settle. Polled, not a fixed wait, so
-// a loaded machine does not fail it.
-const settled = async () => {
-  const deadline = performance.now() + 3000;
-  while (lifted().length) {
-    if (performance.now() > deadline)
-      throw new Error("the slide did not settle");
-    await frame();
-  }
-  // The re-render that unmounts pruned screens.
-  await frame();
-};
-
-const hosts = () => [
-  ...document.querySelectorAll<HTMLElement>("[data-stack-screen]"),
-];
-const lifted = () => hosts().filter((host) => host.style.position === "fixed");
-const contentOf = (host: HTMLElement) => host.firstElementChild as HTMLElement;
 // React hides a screen's content; the screen element itself is the layer.
 const shown = () =>
   hosts().filter(
@@ -143,33 +134,6 @@ let app: ReturnType<typeof mount> | null = null;
 let base = "";
 let run = 0;
 const at = (path: string) => `${base}${path}`;
-
-// Per animation frame: the window scroll and how many layers are up.
-function recordFrames() {
-  const frames: { y: number; lifted: number }[] = [];
-  let on = true;
-  const tick = () => {
-    frames.push({ y: Math.round(scrollY), lifted: lifted().length });
-    if (on) requestAnimationFrame(tick);
-  };
-  tick();
-  return () => {
-    on = false;
-    return frames;
-  };
-}
-
-// The cause of the blank frame on iOS WebKit: the layers dropped and the window
-// scrolled in the same frame. The window must already be where the screen sits
-// when the layers drop.
-const scrollsWhenDropping = (frames: { y: number; lifted: number }[]) =>
-  frames.filter(
-    (sample, index) =>
-      index > 0 &&
-      frames[index - 1]!.lifted > 0 &&
-      sample.lifted === 0 &&
-      sample.y !== frames[index - 1]!.y,
-  );
 
 // Every play must run forward: a negative playbackRate (or reverse()) finishes
 // at once in iOS WebKit, so a cancel snapped back without sliding.
@@ -240,7 +204,12 @@ describe("Stack", () => {
 
     app.push(at("/post"));
     expect(lifted()).toHaveLength(2);
-    expect(lifted().every((host) => host.inert)).toBe(true);
+    // The screen leaving takes nothing; the one arriving takes focus, no taps.
+    const [arriving, leaving] = lifted();
+    expect(pageOf(arriving!)).toBe(at("/post"));
+    expect(leaving!.inert).toBe(true);
+    expect(arriving!.inert).toBe(false);
+    expect(arriving!.style.pointerEvents).toBe("none");
 
     await settled();
     expect(lifted()).toHaveLength(0);
@@ -884,35 +853,6 @@ describe("regressions", () => {
   });
 });
 
-interface TouchOptions {
-  on?: Element | undefined;
-  cancelable?: boolean;
-  id?: number;
-  fingers?: number;
-}
-
-// A plain event carrying the touch points the swipe reads: desktop WebKit
-// (the engine of iOS WebViews) constructs neither Touch nor TouchEvent.
-function dispatchTouch(
-  target: EventTarget,
-  type: string,
-  x: number,
-  y = 300,
-  { cancelable = true, id = 1, fingers = 1 }: TouchOptions = {},
-) {
-  const point = { identifier: id, target, clientX: x, clientY: y };
-  const ended = type === "touchend" || type === "touchcancel";
-  const event = Object.assign(
-    new Event(type, { bubbles: true, cancelable, composed: true }),
-    {
-      touches: ended ? [] : Array.from({ length: fingers }, () => point),
-      changedTouches: [point],
-    },
-  );
-  target.dispatchEvent(event);
-  return event;
-}
-
 const page = () =>
   document.querySelector<HTMLElement>(`[data-page="${location.pathname}"]`)!;
 
@@ -943,6 +883,18 @@ describe("edge swipe", () => {
     await drag(innerWidth * 0.6);
     expect(lifted()).toHaveLength(2);
     touch("touchend", innerWidth * 0.6);
+    await settled();
+  });
+
+  // Not committed yet, the screen behind is still hidden for React.
+  test("a swipe keeps the screen behind inert until its back commits", async () => {
+    app = mount();
+    app.push(at("/post"));
+    await settled();
+    await drag(innerWidth * 0.3);
+    const behind = lifted().find((host) => pageOf(host) === at("/home"))!;
+    expect(behind.inert).toBe(true);
+    touch("touchend", innerWidth * 0.3);
     await settled();
   });
 
@@ -1240,7 +1192,7 @@ describe("edge swipe", () => {
 
   // A guard on the screen a back lands on sends it to where the back came from
   // (a login page, once logged in): the back ends where it started instead of
-  // waiting for a commit of another screen forever, both screens inert.
+  // waiting for a commit of another screen forever.
   test("a swipe back the router redirects to the screen left slides back to rest", async () => {
     // The router redirects before it renders: its listener runs first.
     const guard = () => {

@@ -39,6 +39,11 @@ export interface SlideControl {
    */
   retarget(layer: Layer): void;
   /**
+   * The entering screen held inert (a swipe's) takes focus: its back is
+   * decided, and the commit's layout effects run before the core's.
+   */
+  unhold(): void;
+  /**
    * Shows both layers' content again after a router commit hid the leaving
    * one's.
    */
@@ -63,13 +68,22 @@ export function slide(
   leave: Layer,
   transition: Transition,
   back: boolean,
+  {
+    holdEnter = false,
+    onScroll,
+  }: {
+    /** The entering screen stays inert (a swipe's, not committed yet). */
+    holdEnter?: boolean;
+    /** A layer's scroll moved while lifted (a focus scrolled it into view). */
+    onScroll?: (host: HTMLElement, scroll: number) => void;
+  } = {},
 ): SlideControl {
   const owner = {};
   const root = enter.host.parentElement as HTMLElement;
   if (dev) warnFixedContainer(root);
   const geometry = geometryOf(root);
   const { offsetOf } = geometry;
-  const { show, place, lift, restore } = layersOf(
+  const { show, place, lift, allowFocus, owns, restore } = layersOf(
     owner,
     background(root),
     geometry,
@@ -92,8 +106,11 @@ export function slide(
   const topOffset = offsetOf(top);
   const leaveHeight = contentOf(leave.host).offsetHeight;
 
-  lift(bottom, 1, bottomOffset);
-  lift(top, 2, topOffset);
+  // Until unhold(): a redirect then lifts its screen as the one shown.
+  let holding = holdEnter;
+  const inertOf = (layer: Layer) => layer === leave || holding;
+  lift(bottom, 1, { offset: bottomOffset, inert: inertOf(bottom) });
+  lift(top, 2, { offset: topOffset, inert: inertOf(top) });
   // Fixed, not animated: an animated shadow repaints the whole layer every
   // frame.
   if (transition.shadow) top.host.style.boxShadow = transition.shadow;
@@ -105,6 +122,40 @@ export function slide(
   const focused = document.activeElement;
   if (focused instanceof HTMLElement && leave.host.contains(focused))
     focused.blur();
+
+  // A focus scrolls the lifted host itself (its overflow clips), which the
+  // drop would throw away: folded into the layer's scroll, shown by its offset
+  // and aimed at, before the frame paints. Reads first, then the writes. Down
+  // only: shown by a margin, the layer has no scroll up to a field above. The
+  // screen leaving is inert: no focus scrolls it.
+  const fold = (aimed = true) => {
+    const { host } = enter;
+    const by = host.scrollTop;
+    if (!by || !owns(host)) return;
+    const offset = offsetOf(enter) + by;
+    const height = contentOf(host).offsetHeight;
+    host.scrollTop = 0;
+    enter.scroll = offset;
+    place(enter, offset);
+    // By host: an end aims at the core's own layer of that screen.
+    if (aimed && aim.aimed?.host === host) aim.at(enter, height, offset);
+    onScroll?.(host, offset);
+  };
+  const onHostScroll = () => fold();
+  const watch = (host: HTMLElement) => {
+    host.addEventListener("scroll", onHostScroll, { passive: true });
+    return () => host.removeEventListener("scroll", onHostScroll);
+  };
+  let unwatch = watch(enter.host);
+
+  // An autoFocus lands before the lift, while the window scrolls the screen.
+  const foldFocused = () => {
+    const field = document.activeElement;
+    if (!(field instanceof HTMLElement) || !enter.host.contains(field)) return;
+    field.scrollIntoView({ block: "nearest" });
+    fold();
+  };
+  foldFocused();
 
   // A layer's content can change height while lifted (its data arrives): its
   // offset and, behind the layers, the window follow in the same frame, so the
@@ -188,7 +239,9 @@ export function slide(
       if (dev && layer.host === leave.host)
         console.error("route-stack: a slide retargeted to its leaving screen.");
 
-      lift(layer, enterOnTop ? 2 : 1);
+      lift(layer, enterOnTop ? 2 : 1, { inert: holding });
+      unwatch();
+      unwatch = watch(layer.host);
       if (enterOnTop && transition.shadow)
         layer.host.style.boxShadow = transition.shadow;
       if (aim.aimed === enter) aim.at(layer);
@@ -201,6 +254,13 @@ export function slide(
       if (shade && !enterOnTop) layer.host.append(shade);
 
       enter = layer;
+      // The redirect's screen mounted, and focused, before this lift too.
+      foldFocused();
+    },
+    unhold() {
+      if (ended || !holding) return;
+      holding = false;
+      allowFocus(enter.host);
     },
     reveal() {
       if (ended) return;
@@ -213,6 +273,10 @@ export function slide(
       // drop is decided again with this `current`.
       if (ended && !deferred) return;
 
+      // A focus in the commit that ends it (a back that rested before its
+      // commit) has scrolled the layer, its scroll event not come yet: folded,
+      // not aimed, so the window is aimed a frame before the drop below.
+      fold(false);
       ended = true;
       resized.disconnect();
       cancelAnimationFrame(deferred);
@@ -220,6 +284,10 @@ export function slide(
 
       const drop = () => {
         deferred = 0;
+        // A focus whose scroll event has not come yet: its scroll would go
+        // with the overflow. Not before: one in a drop put off a frame folds.
+        fold();
+        unwatch();
         motion.cancel();
         shade?.remove();
         for (const { host } of [enter, leave])
@@ -227,21 +295,20 @@ export function slide(
         aim.release();
       };
 
+      // The core's layer of the screen arriving has not seen a fold yet.
+      const shown = current?.host === enter.host ? enter : current;
+
       // Measured, not assumed: anything may have scrolled the window since it
       // was aimed (a router's scroll restoration).
-      if (
-        now ||
-        !current ||
-        Math.round(scrollY) === Math.round(offsetOf(current))
-      )
+      if (now || !shown || Math.round(scrollY) === Math.round(offsetOf(shown)))
         return drop();
 
       // A slide played to its end aims the window first: logged, so a blank
       // frame can be traced to it. A slide cut by a navigation without
       // animation is the expected case.
-      if (rested) log("late-scroll", { scrollY, want: offsetOf(current) });
+      if (rested) log("late-scroll", { scrollY, want: offsetOf(shown) });
       motion.pause();
-      aim.at(current);
+      aim.at(shown);
       deferred = requestAnimationFrame(drop);
     },
   };

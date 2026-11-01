@@ -19,7 +19,7 @@ What this means for your CSS:
 
 - `position: fixed` elements inside a screen (a floating button, a tab bar in the screen) stay in place in their layer.
 - The layers are painted with the background of the first element, from the stack root up, that has one (`body`, `html`…), or else the page default.
-- While a slide runs, both screens are `inert`: no taps, no focus, no keyboard. Elements outside the stack keep working.
+- While a slide runs, the screen leaving is `inert`: no taps, no focus, no keyboard. The screen arriving takes focus (an `autoFocus`, a `focus()` in an effect) but no taps, and where a focus scrolls it down to a field, the slide ends there (a field above where it sits is focused without scrolling). Elements outside the stack keep working.
 
 ## Outside the stack
 

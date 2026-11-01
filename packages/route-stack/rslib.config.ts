@@ -3,7 +3,9 @@ import { defineConfig } from "@rslib/core";
 export default defineConfig({
   lib: [{ format: "esm", bundle: false, dts: true }],
   source: {
-    entry: { index: ["./src/**", "!./src/**/*.test.{ts,tsx}"] },
+    entry: {
+      index: ["./src/**", "!./src/**/*.test.{ts,tsx}", "!./src/test/**"],
+    },
     tsconfigPath: "./tsconfig.build.json",
   },
   output: { target: "web" },

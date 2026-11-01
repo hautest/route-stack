@@ -313,6 +313,12 @@ export class Core {
     if (document.visibilityState === "hidden") this.onPageHide();
   };
 
+  /** A focus scrolled a lifted screen: where the window takes it at the end. */
+  private readonly onLayerScroll = (host: HTMLElement, scroll: number) => {
+    const screen = this.committed.find(({ id }) => this.hostOf(id) === host);
+    if (screen) this.scrolls.set(screen.id, scroll);
+  };
+
   private shown(): Screen | undefined {
     return this.committed.find((screen) => screen.id === this.shownId);
   }
@@ -390,6 +396,7 @@ export class Core {
       { host: fromHost, scroll: this.scrolls.get(leaving.id) ?? 0 },
       transition,
       direction === "back",
+      { onScroll: this.onLayerScroll },
     );
 
     this.play({
@@ -593,6 +600,8 @@ export class Core {
       { host: fromHost, scroll: scrollY },
       transition,
       true,
+      // Hidden for React until the back commits: no focus there before.
+      { holdEnter: true, onScroll: this.onLayerScroll },
     );
 
     this.run = { phase: "drag", control, to: to.id };
@@ -619,6 +628,7 @@ export class Core {
 
         log("release", { progress, back, shown: control.progress });
         control.seek(progress);
+        if (back) control.unhold();
 
         this.play({
           phase: "play",
