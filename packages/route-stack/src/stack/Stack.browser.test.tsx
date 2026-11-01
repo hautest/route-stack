@@ -947,9 +947,10 @@ describe("edge swipe", () => {
     app.push(at("/post"));
     await settled();
 
+    // In one task: the speed is read over the last 100ms of moves, which a
+    // frame of a loaded machine (a CI runner) can outlast.
     touch("touchstart", 5);
     touch("touchmove", 40);
-    await frame();
     touch("touchmove", 120);
     touch("touchend", 120);
     await settled();
