@@ -27,16 +27,15 @@ export const settled = () => until(() => !lifted().length, "the settle");
 // its listener came first).
 export async function scrolled(y: number) {
   if (Math.round(scrollY) === y) return;
-  const at = new Promise<void>((resolve) => {
-    const onScroll = () => {
-      if (Math.round(scrollY) !== y) return;
-      removeEventListener("scroll", onScroll);
-      resolve();
-    };
-    addEventListener("scroll", onScroll);
-  });
-  scrollTo(0, y);
-  await at;
+  let seen = false;
+  const onScroll = () => (seen ||= Math.round(scrollY) === y);
+  addEventListener("scroll", onScroll);
+  try {
+    scrollTo(0, y);
+    await until(() => seen, `the window at ${y}`);
+  } finally {
+    removeEventListener("scroll", onScroll);
+  }
 }
 
 // A slide held where it is, for a test acting mid-slide however slow the
@@ -47,6 +46,17 @@ export const pauseSlide = () => {
 export const finishSlide = () => {
   for (const animation of document.getAnimations()) animation.finish();
 };
+// The slide played to its end and still up (a back awaiting its commit). Not
+// none: a slide already settled has no animation either.
+export const rested = () => {
+  const animations = document.getAnimations();
+  return (
+    animations.length > 0 &&
+    animations.every((animation) => animation.playState === "finished")
+  );
+};
+// Each animation held at `progress` of its time (eased, the screens are
+// further along).
 export const slideAt = (progress: number) => {
   for (const animation of document.getAnimations()) {
     animation.pause();
@@ -72,15 +82,21 @@ export function recordFrames() {
 
 // The cause of the blank frame on iOS WebKit: the layers dropped and the window
 // scrolled in the same frame. The window must already be where the screen sits
-// when the layers drop.
-export const scrollsWhenDropping = (samples: { y: number; lifted: number }[]) =>
-  samples.filter(
+// when the layers drop. A record without a frame of the layers up compares
+// nothing: started once the slide is (it takes its first frame at once).
+export const scrollsWhenDropping = (
+  samples: { y: number; lifted: number }[],
+) => {
+  if (!samples.some((sample) => sample.lifted))
+    throw new Error("no frame recorded the layers up");
+  return samples.filter(
     (sample, index) =>
       index > 0 &&
       samples[index - 1]!.lifted > 0 &&
       sample.lifted === 0 &&
       sample.y !== samples[index - 1]!.y,
   );
+};
 
 export interface TouchOptions {
   on?: Element | undefined;

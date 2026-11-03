@@ -2,8 +2,10 @@ import { describe, expect, test } from "vitest";
 import {
   dispatchTouch,
   finishSlide,
+  frame,
   lifted,
   recordFrames,
+  rested,
   scrolled,
   scrollsWhenDropping,
   settled,
@@ -13,6 +15,7 @@ import {
 import {
   at,
   mount,
+  offsetX,
   pageOf,
   progress,
   progressUntilSettled,
@@ -189,16 +192,6 @@ describe("edge swipe", () => {
     expect(location.pathname).toBe(at("/post"));
   });
 
-  test("a swipe right after a push settles works", async () => {
-    app = mount();
-    app.push(at("/post"));
-    await settled();
-    drag(innerWidth * 0.6);
-    touch("touchend", innerWidth * 0.6);
-    await settled();
-    expect(location.pathname).toBe(at("/home"));
-  });
-
   test("swipe as a function turns the edge off for the backs it refuses", async () => {
     app = mount({ swipe: (from) => (from.endsWith("/post") ? false : "edge") });
     app.push(at("/post"));
@@ -218,7 +211,7 @@ describe("edge swipe", () => {
   // Whichever end the release decides, the window is already at the nearer
   // screen: aimed only at the end, a cancel's scroll met the drop (a blank
   // frame on iOS).
-  test("the window follows the finger's nearer screen while dragging", async () => {
+  test("the window follows the finger's nearer screen; dragged back to the edge, the drop does not scroll", async () => {
     app = mount();
     await scrolled(700);
     app.push(at("/post"));
@@ -226,12 +219,17 @@ describe("edge swipe", () => {
     expect(scrollY).toBe(0);
 
     drag(innerWidth * 0.7);
+    const stop = recordFrames();
     await until(() => scrollY === 700, "the window at the screen behind");
-    for (let x = innerWidth * 0.7; x >= innerWidth * 0.3; x -= 40)
-      touch("touchmove", x);
+    for (let x = innerWidth * 0.7; x > 5; x -= 40) touch("touchmove", x);
+    touch("touchmove", 5);
     await until(() => scrollY === 0, "the window back at the screen on top");
-    touch("touchend", innerWidth * 0.3, 150);
+    // A finger's end comes in a frame after its last move (input runs before
+    // the frame callbacks that seek).
+    await frame();
+    touch("touchend", 5, 150);
     await settled();
+    expect(scrollsWhenDropping(stop())).toEqual([]);
     expect(location.pathname).toBe(at("/post"));
   });
 
@@ -249,32 +247,49 @@ describe("edge swipe", () => {
     expect(shown().map(pageOf)).toEqual([at("/other")]);
   });
 
-  test("a swipe dragged back to the edge drops the layers without scrolling", async () => {
-    app = mount();
-    await scrolled(700);
-    app.push(at("/post"));
-    await settled();
-    const stop = recordFrames();
-    drag(innerWidth * 0.7);
-    for (let x = innerWidth * 0.7; x > 5; x -= 40) touch("touchmove", x);
-    touch("touchmove", 5);
-    touch("touchend", 5, 150);
-    await settled();
-    expect(scrollsWhenDropping(stop())).toEqual([]);
-    expect(location.pathname).toBe(at("/post"));
-  });
-
   test("a swipe back released past half drops the layers without scrolling", async () => {
     app = mount();
     await scrolled(700);
     app.push(at("/post"));
     await settled();
-    const stop = recordFrames();
     drag(innerWidth * 0.6);
+    const stop = recordFrames();
+    await until(() => scrollY === 700, "the window at the screen behind");
     touch("touchend", innerWidth * 0.6, 150);
     await settled();
     expect(scrollsWhenDropping(stop())).toEqual([]);
     expect(scrollY).toBe(700);
+  });
+
+  // The window turns to a screen only past 55% of the way toward it: a finger
+  // resting at half does not flip it, and scroll, every frame.
+  test("the window turns to a screen only well past half", async () => {
+    app = mount({ enableProgressCssVar: true });
+    await scrolled(700);
+    app.push(at("/post"));
+    await settled();
+
+    // The progress is written with each seek: the seek ran once it shows.
+    const move = async (x: number) => {
+      touch("touchmove", innerWidth * x);
+      const shows = 1 - (innerWidth * x - 5) / (innerWidth - 5);
+      await until(
+        () => Math.abs(Number(progress()) - shows) < 0.01,
+        `the seek at ${x}`,
+      );
+    };
+    touch("touchstart", 5);
+    await move(0.5);
+    expect(scrollY).toBe(0);
+    await move(0.6);
+    expect(scrollY).toBe(700);
+    await move(0.5);
+    expect(scrollY).toBe(700);
+    await move(0.4);
+    expect(scrollY).toBe(0);
+    touch("touchend", innerWidth * 0.4, 150);
+    await settled();
+    expect(location.pathname).toBe(at("/post"));
   });
 
   test("progress falls with the finger, rises once the back commits", async () => {
@@ -335,9 +350,12 @@ describe("edge swipe", () => {
     touch("touchend", innerWidth * 0.6, 150);
     // The rest held mid-play: the commit lands while it still plays.
     slideAt(0.5);
+    const at0 = lifted().map(offsetX);
     await committed;
-    // Both screens' content still shown though React hid the one left.
+    // Both screens' content still shown though React hid the one left, the
+    // layers where they were (iOS rebuilt the animation: it jumped back).
     expect(lifted()).toHaveLength(2);
+    expect(lifted().map(offsetX)).toEqual(at0);
     expect(
       lifted().every(
         (host) => getComputedStyle(contentOf(host)).display !== "none",
@@ -403,13 +421,7 @@ describe("edge swipe", () => {
       // Past the stack's own check a frame after the traversal, and the rest
       // played to its end: still waiting.
       await new Promise(requestAnimationFrame);
-      await until(
-        () =>
-          document
-            .getAnimations()
-            .every((animation) => animation.playState === "finished"),
-        "the rest played",
-      );
+      await until(rested, "the rest played");
       // History is at /home; the router still renders /post.
       expect(location.pathname).toBe(at("/home"));
       expect(lifted()).toHaveLength(2);

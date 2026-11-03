@@ -28,8 +28,6 @@ let app: ReturnType<typeof mount> | null = null;
 
 // Each guards a bug met on a device while building the library (see the
 // troubleshooting notes).
-// Each guards a bug met on a device while building the library (see the
-// troubleshooting notes).
 describe("regressions", () => {
   // Navigations faster than the router renders (/a, /b, /a: only the last
   // rendered): the screen shown at its path shows the current entry. Taken for
@@ -61,7 +59,6 @@ describe("regressions", () => {
     await settled();
     await scrolled(800);
 
-    const stop = recordFrames();
     await app.back();
     slideAt(0.5);
     const landed = new Promise((resolve) =>
@@ -71,6 +68,8 @@ describe("regressions", () => {
     await landed;
     const post = lifted().find((host) => pageOf(host) === at("/post"));
     expect(post && contentOf(post).style.marginTop).toBe("-800px");
+    // From the window aimed: its move before was mid-slide, not at the drop.
+    const stop = recordFrames();
     finishSlide();
     await settled();
     expect(scrollsWhenDropping(stop())).toEqual([]);
@@ -113,8 +112,8 @@ describe("regressions", () => {
     await settled();
 
     heights.set(at("/home"), 1200);
-    const stop = recordFrames();
     await app.back();
+    const stop = recordFrames();
     const home = hosts().find((host) => pageOf(host) === at("/home"))!;
     const end = 1200 - innerHeight;
     expect(-parseFloat(contentOf(home).style.marginTop)).toBe(end);
@@ -132,8 +131,8 @@ describe("regressions", () => {
     await settled();
 
     heights.set(at("/home"), 1200);
-    const stop = recordFrames();
     await app.back();
+    const stop = recordFrames();
     slideAt(0.5);
     // The data arrives: the kept screen renders at its full height again.
     heights.delete(at("/home"));
@@ -158,9 +157,11 @@ describe("regressions", () => {
     await scrolled(700);
     app.push(at("/post"));
     await settled();
-    const stop = recordFrames();
     await app.back();
+    const stop = recordFrames();
+    // Mid-slide: the window already where the screen arrived at sits.
     expect(lifted()).toHaveLength(2);
+    expect(scrollY).toBe(700);
     await settled();
     expect(scrollsWhenDropping(stop())).toEqual([]);
     expect(scrollY).toBe(700);
@@ -169,8 +170,8 @@ describe("regressions", () => {
   test("a push drops the layers only once the window is at the top", async () => {
     app = mount();
     await scrolled(700);
-    const stop = recordFrames();
     app.push(at("/post"));
+    const stop = recordFrames();
     await settled();
     expect(scrollsWhenDropping(stop())).toEqual([]);
     expect(scrollY).toBe(0);

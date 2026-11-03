@@ -113,19 +113,6 @@ describe("Stack", () => {
     await until(() => hosts().length === 1, "the prune");
   });
 
-  test("the window is aimed at the screen arrived at before the layers drop", async () => {
-    app = mount();
-    await scrolled(500);
-    app.push(at("/post"));
-    await settled();
-
-    await app.back();
-    // Mid-slide: the layers are still up, the window already where the home
-    // screen sits.
-    expect(lifted()).toHaveLength(2);
-    expect(scrollY).toBe(500);
-  });
-
   test("progress: off by default; on, a push rises to 1, unset at rest", async () => {
     app = mount();
     app.push(at("/post"));
@@ -355,6 +342,35 @@ describe("Stack", () => {
     const login = lifted().find((host) => pageOf(host) === at("/login"))!;
     const before = offsetX(login);
     await until(() => offsetX(login) < before, "the redirected screen moving");
+    await settled();
+    expect(shown().map(pageOf)).toEqual([at("/login")]);
+  });
+
+  // Turned while it plays (not pending: started a frame before), the slide
+  // goes on from where the screen is.
+  test("a redirect of a playing slide continues from where it is, without a jump", async () => {
+    // The duration only bounds how long it may play; nothing waits on it.
+    app = mount({ animate: () => ({ ...ios, duration: 10_000 }) });
+    app.push(at("/me"));
+    slideAt(0.5);
+    for (const animation of document.getAnimations()) animation.play();
+    await until(
+      () =>
+        document
+          .getAnimations()
+          .every(
+            (animation) =>
+              !animation.pending && animation.playState === "running",
+          ),
+      "the slide playing",
+    );
+    const me = lifted().find((host) => pageOf(host) === at("/me"))!;
+    const was = offsetX(me);
+    app.replace(at("/login"));
+    const login = lifted().find((host) => pageOf(host) === at("/login"))!;
+    expect(offsetX(login)).toBeCloseTo(was, 0);
+    await until(() => offsetX(login) < was, "the redirected screen moving");
+    finishSlide();
     await settled();
     expect(shown().map(pageOf)).toEqual([at("/login")]);
   });

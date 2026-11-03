@@ -11,6 +11,7 @@ import {
   lifted,
   pauseSlide,
   recordFrames,
+  rested,
   scrolled,
   scrollsWhenDropping,
   settled,
@@ -155,8 +156,8 @@ for (const how of ["autoFocus", "effect"] as const)
     test(`a pushed screen's ${how} field at its ${where} keeps the focus, in view`, async () => {
       fields.set(at("/post"), { at: where, how });
       app = mount();
-      const drops = recordFrames();
       app.push(at("/post"));
+      const drops = recordFrames();
       pauseSlide();
       // Mid-slide a focus that scrolled the layer is already the window's
       // (the drop would otherwise undo it, a jump).
@@ -194,8 +195,8 @@ test("a screen back that focuses a field above its scroll keeps its scroll", asy
   app.push(at("/post"));
   await settled();
 
-  const drops = recordFrames();
   await app.back();
+  const drops = recordFrames();
   await settled();
   await until(() => document.activeElement === field(), "the focus");
   expect(scrollY).toBe(1200);
@@ -232,8 +233,8 @@ for (const how of ["effect", "layoutEffect"] as const)
     app.push(at("/post"));
     await settled();
 
-    const drops = recordFrames();
     swipeBack();
+    const drops = recordFrames();
     await settled();
     await until(
       () => document.activeElement === field() && inView(field()),
@@ -282,13 +283,8 @@ test("a swipe back committed after its slide rested ends at the field it focuses
     });
     // The back commits only once its slide rested.
     await landed;
-    await until(
-      () =>
-        document
-          .getAnimations()
-          .every((animation) => animation.playState === "finished"),
-      "the slide rested",
-    );
+    await until(rested, "the slide rested");
+    expect(lifted()).toHaveLength(2);
     app.flush();
     await settled();
     await until(
@@ -305,7 +301,7 @@ test("a swipe back committed after its slide rested ends at the field it focuses
   expect(inView(field())).toBe(true);
   expect(dropped).toBeGreaterThan(0);
   expect(scrolls).not.toContain(dropped);
-  // A late-scroll is expected here: the scroll event came late, so the window
-  // was aimed a frame before the drop.
+  // When the scroll event came late, the window was aimed a frame before the
+  // drop (a late-scroll), as it should.
   logged.splice(0);
 });

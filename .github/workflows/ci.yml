@@ -78,6 +78,8 @@ jobs:
       - if: matrix.name == 'webkit'
         working-directory: packages/route-stack
         run: |
+          status=0
           for file in $(find src -name '*.browser.test.*' ! -name '*.basepath.*' | sort); do
-            pnpm exec vitest run --project "browser (webkit)" "$file"
+            pnpm exec vitest run --project "browser (webkit)" --no-passWithNoTests "$file" || status=1
           done
+          exit $status
