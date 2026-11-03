@@ -33,6 +33,9 @@ import {
 import type { AdapterProps, StackProps, Transition } from "../types";
 
 const fast: Transition = { ...ios, duration: 60 };
+// For a test that acts mid-slide a frame or two in: still sliding then on a
+// slow machine (a CI runner), where a frame can outlast a short slide.
+const slow: Transition = { ...ios, duration: 1000 };
 
 // Page height by path, for pages whose content changes height (a refetch
 // shows a shorter skeleton).
@@ -327,10 +330,8 @@ describe("Stack", () => {
   // A slide ending with the window moved drops its layers a frame later: a
   // navigation without animation in that frame changes the screen shown.
   test("a navigation without animation before a late drop leaves one screen shown", async () => {
-    // Long enough to scroll mid-slide on a slow machine too (a CI runner).
     app = mount({
-      animate: (_from, to) =>
-        to.endsWith("/plain") ? false : { ...fast, duration: 300 },
+      animate: (_from, to) => (to.endsWith("/plain") ? false : slow),
     });
     scrollTo(0, 700);
     await frame();
@@ -438,7 +439,7 @@ describe("Stack", () => {
   // restoration, after the stack's own effect): the end measures, not trusts
   // its aim.
   test("a scroll by someone else during a slide still drops without scrolling", async () => {
-    app = mount({ animate: () => ({ ...fast, duration: 200 }) });
+    app = mount({ animate: () => slow });
     scrollTo(0, 700);
     await frame();
     app.push(at("/post"));
@@ -456,8 +457,7 @@ describe("Stack", () => {
   // animation cutting that slide returns to a kept screen's own scroll.
   test("a back without animation during a slide drops the layers without scrolling", async () => {
     app = mount({
-      animate: (_from, _to, direction) =>
-        direction === "back" ? false : { ...fast, duration: 300 },
+      animate: (_from, _to, direction) => (direction === "back" ? false : slow),
     });
     scrollTo(0, 700);
     await frame();
@@ -514,7 +514,7 @@ describe("Stack", () => {
   });
 
   test("a redirect of the screen being slid to continues the same slide", async () => {
-    app = mount({ animate: () => ({ ...fast, duration: 300 }) });
+    app = mount({ animate: () => slow });
     app.push(at("/me"));
     await frame();
     app.replace(at("/login"));
@@ -623,7 +623,7 @@ describe("regressions", () => {
   // A forward traversal mid-back lands on a screen still kept: from its saved
   // scroll, not the top (it jumped at the end).
   test("a forward during a back slides to the kept screen at its saved scroll", async () => {
-    app = mount({ animate: () => ({ ...fast, duration: 300 }) });
+    app = mount({ animate: () => slow });
     app.push(at("/post"));
     await settled();
     scrollTo(0, 800);
@@ -747,8 +747,7 @@ describe("regressions", () => {
   });
 
   test("an in-screen fixed element stays in place on its screen during a slide", async () => {
-    // Long enough to be mid-slide a frame in on a slow machine (a CI runner).
-    app = mount({ animate: () => ({ ...fast, duration: 1000 }) });
+    app = mount({ animate: () => slow });
     scrollTo(0, 700);
     await frame();
     const homeButton = () =>
