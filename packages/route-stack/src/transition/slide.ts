@@ -159,8 +159,7 @@ export function slide(
 
   // A layer's content can change height while lifted (its data arrives): its
   // offset and, behind the layers, the window follow in the same frame, so the
-  // drop finds the window already there.
-  // All reads first, then the writes: one layout, not one per layer.
+  // drop finds the window already there. Reads first, then the writes.
   const resized = new ResizeObserver(() => {
     const layers = [enter, leave];
     const offsets = layers.map(offsetOf);
@@ -175,7 +174,6 @@ export function slide(
   });
   for (const { host } of [enter, leave]) resized.observe(contentOf(host));
 
-  // A back of its own plays forward; else a back plays the push reversed.
   const reversed = back && !transition.back;
   const keyframes = (back && transition.back) || transition;
   // The keyframes bring in `first` and take out `second`.

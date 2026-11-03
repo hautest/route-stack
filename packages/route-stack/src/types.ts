@@ -79,7 +79,8 @@ export interface StackProps {
    * unless the browser already scrolls, a scroller under the finger can scroll
    * back left, an element declares `touch-action` without `pan-x` (a JS
    * carousel's `pan-y`), or a form control or `[data-stack-no-swipe]` is under
-   * the finger: a JS gesture without either moves with the swipe.
+   * the finger. A JS gesture marked by neither `touch-action` nor
+   * `[data-stack-no-swipe]` moves along with the swipe.
    */
   swipe?: SwipeMode | ((from: string, to: string) => SwipeMode);
   /**

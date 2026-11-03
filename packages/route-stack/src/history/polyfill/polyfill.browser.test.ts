@@ -175,8 +175,8 @@ describe("fragment entries: no stamp, known by URL", () => {
     expect(entries.current().key).not.toBe(replaced.key);
   });
 
-  // The swipe spots a router blocker by the key coming back to where it
-  // started.
+  // R10 spots a router blocker by the entry coming back to where it started:
+  // one key for one entry.
   test("a fragment replace keeps one key for the entry", async () => {
     history.pushState({ s: 1 }, "", "?tab");
     await traverse(() => location.replace("#tab"));

@@ -7,10 +7,10 @@ const entryOf = (entry: NavigationHistoryEntry): Entry => ({
 });
 
 export function fromNavigation(navigation: Navigation): Entries {
-  // A pass over the session's entries looks each up: entries() copies them all
-  // at every call. They change with the current entry, and when Chromium drops
-  // the oldest past 50 and renumbers the rest, with no event: the current
-  // entry's index tells.
+  // Cached: entries() copies the whole list at every call, and a pass looks up
+  // each entry. Dropped when the current entry changes, and when its index no
+  // longer matches (Chromium drops the oldest past 50 and renumbers the rest,
+  // with no event).
   let indexes: Map<string, number> | null = null;
   navigation.addEventListener("currententrychange", () => (indexes = null));
 

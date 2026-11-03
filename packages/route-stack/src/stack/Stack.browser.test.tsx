@@ -62,7 +62,7 @@ function mount(
         data-page={path}
       >
         {path}
-        {/* An in-screen floating button, as moa's "+ 글쓰기". */}
+        {/* An in-screen floating button. */}
         <button
           data-fixed=""
           style={{ position: "fixed", right: "20px", bottom: "100px" }}
@@ -221,8 +221,6 @@ describe("Stack", () => {
     expect(hosts()).toHaveLength(2);
   });
 
-  // A page's top margin collapsed out of the stack at rest; a lifted (fixed)
-  // layer would keep it inside and shift the content by it.
   test("dev warns once when an ancestor makes the layers relative to it", async () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     try {
@@ -245,6 +243,8 @@ describe("Stack", () => {
     }
   });
 
+  // A page's top margin collapsed out of the stack at rest; a lifted (fixed)
+  // layer would keep it inside and shift the content by it.
   test("lifting a screen does not move content with a top margin", async () => {
     const style = document.createElement("style");
     style.textContent = "[data-page] { margin-top: 30px }";
@@ -959,7 +959,7 @@ describe("edge swipe", () => {
     expect(location.pathname).toBe(at("/home"));
   });
 
-  // As iOS: a flick back toward the edge cancels, however far it was dragged.
+  // As iOS.
   test("a flick back toward the edge stays, though dragged past 40%", async () => {
     app = mount();
     app.push(at("/post"));
@@ -1357,7 +1357,7 @@ describe("full-screen swipe", () => {
       touch("touchend", innerWidth * 0.6);
     }));
 
-  // One prop: a mode set on Android is not left behind the default off.
+  // An explicit `swipe` overrides Android's default `false`.
   test('"full" swipes on Android too', () =>
     onAndroid(async () => {
       await pushed();

@@ -26,7 +26,7 @@ const stampable = (state: unknown) =>
   (isObject(state) &&
     [Object.prototype, null].includes(Object.getPrototypeOf(state)));
 
-// Not the URL: a fragment navigation keeps the state, not the URL.
+// In the state, not the URL: a fragment replace changes the URL, keeps the state.
 const stamp = (state: unknown, { key, index }: Stamp) =>
   stampable(state)
     ? { ...(isObject(state) ? state : {}), [STATE]: { key, index } }
