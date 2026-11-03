@@ -972,7 +972,6 @@ describe("traversals", () => {
     expect(shownPaths(stack.core)).toEqual(["/home"]);
   });
 
-  // Chromium keeps 50 entries: past them it drops the oldest and renumbers.
   test("direction compares the indexes entries have now", async () => {
     const stack = mount();
     await pushed(stack, "/a");
@@ -1015,7 +1014,6 @@ describe("render", () => {
     expect(reads).toBe(1);
   });
 
-  // A concurrent render React throws away: nothing it changed stays wrong.
   test("a render thrown away heals at the next commit", () => {
     const stack = mount("/search?q=a");
     stack.core.resolve({ path: "/other", view: () => "current" });

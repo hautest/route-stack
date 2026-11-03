@@ -14,7 +14,7 @@ export interface Render {
   view(): View;
 }
 
-/** The only DOM the core reaches: the screen elements, through its binding. */
+/** From the binding: the screen elements, and a re-render. */
 export interface Driver {
   host(id: number): HTMLElement | null;
   rerender(): void;
@@ -51,8 +51,6 @@ type Run =
 
 type Moving = Extract<Run, { phase: "play" | "rest" }>;
 
-// One stack per document: it owns the window scroll and assigns entries in the
-// document's screen map.
 let attached = 0;
 
 /**
@@ -107,17 +105,15 @@ export class Core {
     const shown = this.shown();
     const currentHistoryId = entries.screenOf(entries.current().key);
 
-    // The screen of the current entry. At another path, not the shown one:
-    // Next renders before it writes history, so the current entry is still
-    // the one being left. Nor for a stale render: the router still draws the
-    // screen left. A hidden one at another path absorbed this entry: the same
-    // screen, as without a hint.
+    // The current entry's screen, unless the render is at another path and
+    // that screen is the shown one (Next renders before it writes history:
+    // the current entry is still the one left), cannot show this path (an app
+    // whose path lags history would draw another page into it), or the render
+    // is stale (the router still draws the screen left). A hidden one that
+    // can show it (a query the router never told apart) absorbs the entry.
     let screen = this.committed.find(
       (kept) => kept.historyId === currentHistoryId,
     );
-    // Only a hidden one that can show this path absorbs it (a query the
-    // router never told apart): a render of another page claiming the entry
-    // (an app whose path lags history) would draw that page into this screen.
     if (
       screen &&
       screen.path !== path &&
@@ -175,7 +171,7 @@ export class Core {
     );
   }
 
-  /** Render order: newest first, so the first DOM match of an id is current. */
+  /** Render order: newest first. */
   screens(): readonly { id: number; path: string }[] {
     return [
       ...this.committed,

@@ -261,6 +261,7 @@ test("a swipe back committed after its slide rested ends at the field it focuses
   expect(inView(field())).toBe(true);
   expect(dropped).toBeGreaterThan(0);
   expect(scrolled).not.toContain(dropped);
-  // The window aimed a frame before the drop, where the scroll event came late.
+  // A late-scroll is expected here: the scroll event came late, so the window
+  // was aimed a frame before the drop.
   logged.splice(0);
 });

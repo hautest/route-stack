@@ -1,4 +1,4 @@
-/** A session history entry. A replace keeps the key, a push makes a new one. */
+/** A session history entry. A push makes a new key; a replace keeps it (not always: see NavigationEvent). */
 export interface Entry {
   key: string;
   index: number;

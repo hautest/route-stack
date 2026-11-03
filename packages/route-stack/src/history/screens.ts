@@ -102,10 +102,11 @@ export function createScreenMap(
             screens.delete(key);
             cut.add(key);
           }
-        // A screen whose last entry was cut never comes back: its record goes
-        // too, or a long-lived WebView keeps one per screen ever shown. Not one
-        // no entry shows: a replace moved that entry to another screen, and a
-        // late render of the old one is still that replace.
+        // A screen whose last entry was cut never comes back: its record goes.
+        // Only by a cut entry: a screen a replace left keeps its record, as a
+        // late render of it is still that replace. ponytail: so replaces on one
+        // live entry (a tab bar on replace) keep a record per screen until that
+        // entry is cut; a forget() from the core's prune would bound it.
         for (const [gone, entry] of last)
           if (cut.has(entry.key)) last.delete(gone);
       }

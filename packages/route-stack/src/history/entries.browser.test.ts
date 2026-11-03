@@ -81,7 +81,7 @@ function scenario(get: () => Entries, fragmentStep: number) {
     );
   });
 
-  // What the swipe relies on to spot a router blocker undoing its back: the
+  // What R10 relies on to spot a router blocker undoing a swipe's back: the
   // entry is already current inside popstate listeners, and go(1) lands on the
   // same entry again.
   test("a blocker's go(1) after back lands on the same entry", async () => {

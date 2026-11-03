@@ -190,7 +190,6 @@ export function listenSwipe(begin: () => Drag | null): Swipe {
     const speed = (touch.clientX - x1) / (event.timeStamp - time1 || 1);
     const room = Math.max(1, innerWidth - finger.x0);
 
-    // However far it was dragged, as iOS.
     release(
       speed > -BACK_SPEED &&
         ((touch.clientX - finger.x0) / room > BACK_AT || speed > BACK_SPEED),

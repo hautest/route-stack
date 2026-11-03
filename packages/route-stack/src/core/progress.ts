@@ -22,7 +22,6 @@ export class ProgressVar {
     document.documentElement.style.removeProperty(PROGRESS);
   }
 
-  /** Writes `read()` every frame until it gives null, then clears. */
   track(read: () => number | null) {
     if (!this.enabled || this.ticking) return;
 
