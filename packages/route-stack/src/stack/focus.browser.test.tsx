@@ -164,6 +164,7 @@ for (const how of ["autoFocus", "effect"] as const)
       await until(
         () =>
           document.activeElement === field() &&
+          lifted().length === 2 &&
           lifted().every((host) => host.scrollTop === 0) &&
           inView(field()),
         "the focus folded into the window",

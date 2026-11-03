@@ -272,9 +272,9 @@ describe("edge swipe", () => {
     // The progress is written with each seek: the seek ran once it shows.
     const move = async (x: number) => {
       touch("touchmove", innerWidth * x);
-      const shows = 1 - (innerWidth * x - 5) / (innerWidth - 5);
+      const shows = 1 - (innerWidth * x - 5) / innerWidth;
       await until(
-        () => Math.abs(Number(progress()) - shows) < 0.01,
+        () => Math.abs(Number(progress()) - shows) < 0.001,
         `the seek at ${x}`,
       );
     };
