@@ -1,5 +1,5 @@
-// Apart from Stack.browser.test.tsx: WebKit allows a document 100 history
-// writes per 10 seconds, and that file comes close to it.
+// A file of its own: WebKit allows a page 100 history writes per 10 seconds
+// (see test/stack.tsx).
 import { useEffect, useLayoutEffect, useRef } from "react";
 import { flushSync } from "react-dom";
 import { createRoot } from "react-dom/client";
@@ -7,12 +7,16 @@ import { afterEach, beforeEach, expect, test } from "vitest";
 import { Stack } from "./Stack";
 import {
   dispatchTouch,
-  frame,
-  frames,
+  finishSlide,
   lifted,
+  pauseSlide,
   recordFrames,
+  rested,
+  scrolled,
   scrollsWhenDropping,
   settled,
+  slideAt,
+  until,
 } from "../test/browser";
 import { ios } from "../transition/transitions";
 import type { Transition } from "../types";
@@ -35,8 +39,9 @@ function Field({ how }: { how: How }) {
   return <input ref={ref} data-field="" autoFocus={how === "autoFocus"} />;
 }
 
-// `lag`: the router renders a back that long after history moved (loaders).
-function mount(duration = fast.duration, lag = 0) {
+// `lagged`: the router renders a back only when told (`flush`), as one whose
+// loaders run.
+function mount({ lagged = false } = {}) {
   const container = document.createElement("div");
   document.body.append(container);
   const root = createRoot(container);
@@ -45,7 +50,7 @@ function mount(duration = fast.duration, lag = 0) {
     const field = fields.get(path);
     flushSync(() =>
       root.render(
-        <Stack animate={() => ({ ...fast, duration })} path={path}>
+        <Stack animate={() => fast} path={path}>
           <div style={{ height: "3000px" }} data-page={path}>
             {field?.at === "top" && <Field how={field.how} />}
             {path}
@@ -59,10 +64,15 @@ function mount(duration = fast.duration, lag = 0) {
       ),
     );
   };
-  const onPop = () => (lag ? setTimeout(render, lag) : render());
+  let late: (() => void) | null = null;
+  const onPop = () => (lagged ? (late = render) : render());
   addEventListener("popstate", onPop);
   render();
   return {
+    flush() {
+      late?.();
+      late = null;
+    },
     push(path: string) {
       history.pushState(null, "", path);
       render();
@@ -95,15 +105,23 @@ const inView = (el: Element) => {
   return top >= 0 && bottom <= innerHeight;
 };
 
-// From the left edge past half of the screen, released: a back.
-async function swipeBack() {
+// From the left edge past half of the screen, released: a back. A frame
+// between events (their times).
+function swipeBack() {
   const target = document.querySelector(`[data-page="${location.pathname}"]`)!;
-  dispatchTouch(target, "touchstart", 5);
-  for (let i = 1; i <= 6; i++) {
-    dispatchTouch(target, "touchmove", 5 + ((innerWidth * 0.6 - 5) * i) / 6);
-    await frame();
-  }
-  dispatchTouch(target, "touchend", innerWidth * 0.6);
+  let at = 0;
+  dispatchTouch(target, "touchstart", 5, 300, { at });
+  for (let i = 1; i <= 6; i++)
+    dispatchTouch(
+      target,
+      "touchmove",
+      5 + ((innerWidth * 0.6 - 5) * i) / 6,
+      300,
+      {
+        at: (at += 16),
+      },
+    );
+  dispatchTouch(target, "touchend", innerWidth * 0.6, 300, { at: at + 16 });
 }
 
 let app: ReturnType<typeof mount> | null = null;
@@ -137,18 +155,27 @@ for (const how of ["autoFocus", "effect"] as const)
   for (const where of ["top", "bottom"] as const)
     test(`a pushed screen's ${how} field at its ${where} keeps the focus, in view`, async () => {
       fields.set(at("/post"), { at: where, how });
-      // Long enough to look mid-slide on a slow machine too (a CI runner).
-      app = mount(1000);
-      const drops = recordFrames();
+      app = mount();
       app.push(at("/post"));
+      const drops = recordFrames();
+      pauseSlide();
       // Mid-slide a focus that scrolled the layer is already the window's
       // (the drop would otherwise undo it, a jump).
-      await frames(2);
+      await until(
+        () =>
+          document.activeElement === field() &&
+          lifted().length === 2 &&
+          lifted().every((host) => host.scrollTop === 0) &&
+          inView(field()),
+        "the focus folded into the window",
+      );
       expect(lifted()).toHaveLength(2);
-      expect(lifted().map((host) => host.scrollTop)).toEqual([0, 0]);
-      expect(inView(field())).toBe(true);
+      finishSlide();
       await settled();
-      await frames(3);
+      await until(
+        () => document.activeElement === field() && inView(field()),
+        "the focus, in view",
+      );
 
       expect(document.activeElement).toBe(field());
       expect(inView(field())).toBe(true);
@@ -161,20 +188,18 @@ for (const how of ["autoFocus", "effect"] as const)
 test("a screen back that focuses a field above its scroll keeps its scroll", async () => {
   fields.set(at("/home"), { at: "top", how: "effect" });
   app = mount();
-  await frame();
+  await until(() => document.activeElement === field(), "the focus");
   // WebKit holds the window at a focused field: scrolled with none, the
   // effect focuses it again when the screen comes back.
   field().blur();
-  scrollTo(0, 1200);
-  await frame();
+  await scrolled(1200);
   app.push(at("/post"));
   await settled();
 
-  const drops = recordFrames();
   await app.back();
+  const drops = recordFrames();
   await settled();
-  await frames(3);
-  expect(document.activeElement).toBe(field());
+  await until(() => document.activeElement === field(), "the focus");
   expect(scrollY).toBe(1200);
   expect(scrollsWhenDropping(drops())).toEqual([]);
 });
@@ -184,14 +209,16 @@ test("a screen back that focuses a field above its scroll keeps its scroll", asy
 for (const where of ["top", "bottom"] as const)
   test(`a screen a redirect slides in keeps its autoFocus at its ${where}, in view`, async () => {
     fields.set(at("/login"), { at: where, how: "autoFocus" });
-    app = mount(300);
+    app = mount();
     app.push(at("/post"));
-    await frame();
+    slideAt(0.5);
     app.replace(at("/login"));
+    finishSlide();
     await settled();
-    await frames(3);
-
-    expect(document.activeElement).toBe(field());
+    await until(
+      () => document.activeElement === field() && inView(field()),
+      "the focus, in view",
+    );
     expect(inView(field())).toBe(true);
   });
 
@@ -200,17 +227,20 @@ for (const where of ["top", "bottom"] as const)
 for (const how of ["effect", "layoutEffect"] as const)
   test(`a swipe back to a screen that focuses a field far below in an ${how} ends there`, async () => {
     fields.set(at("/home"), { at: "bottom", how });
-    app = mount(300);
+    app = mount();
+    await until(() => document.activeElement === field(), "the focus");
     field().blur();
-    scrollTo(0, 0);
-    await frame();
+    await scrolled(0);
     app.push(at("/post"));
     await settled();
 
+    swipeBack();
     const drops = recordFrames();
-    await swipeBack();
     await settled();
-    await frames(3);
+    await until(
+      () => document.activeElement === field() && inView(field()),
+      "the focus, in view",
+    );
 
     expect(location.pathname).toBe(at("/home"));
     expect(document.activeElement).toBe(field());
@@ -222,10 +252,10 @@ for (const how of ["effect", "layoutEffect"] as const)
 // the layer still lifted, its scroll event maybe not come when the slide ends.
 test("a swipe back committed after its slide rested ends at the field it focuses", async () => {
   fields.set(at("/home"), { at: "bottom", how: "layoutEffect" });
-  app = mount(150, 400);
+  app = mount({ lagged: true });
+  await until(() => document.activeElement === field(), "the focus");
   field().blur();
-  scrollTo(0, 0);
-  await frame();
+  await scrolled(0);
   app.push(at("/post"));
   await settled();
 
@@ -233,24 +263,35 @@ test("a swipe back committed after its slide rested ends at the field it focuses
   // not drop in a frame that also scrolls the window.
   const now = () => Number(document.timeline.currentTime);
   let dropped = 0;
-  const scrolled: number[] = [];
+  const scrolls: number[] = [];
   const observer = new MutationObserver(() => {
     if (!dropped && !lifted().length) dropped = now();
   });
   const windowScroll = window.scrollTo;
   window.scrollTo = ((x: number, y: number) => {
-    if (Math.round(y) !== Math.round(scrollY)) scrolled.push(now());
+    if (Math.round(y) !== Math.round(scrollY)) scrolls.push(now());
     windowScroll.call(window, x, y);
   }) as typeof window.scrollTo;
   try {
-    await swipeBack();
+    const landed = new Promise((resolve) =>
+      addEventListener("popstate", resolve, { once: true }),
+    );
+    swipeBack();
     observer.observe(document.body, {
       attributes: true,
       subtree: true,
       attributeFilter: ["style"],
     });
+    // The back commits only once its slide rested.
+    await landed;
+    await until(rested, "the slide rested");
+    expect(lifted()).toHaveLength(2);
+    app.flush();
     await settled();
-    await frames(3);
+    await until(
+      () => document.activeElement === field() && inView(field()),
+      "the focus, in view",
+    );
   } finally {
     observer.disconnect();
     window.scrollTo = windowScroll;
@@ -260,8 +301,8 @@ test("a swipe back committed after its slide rested ends at the field it focuses
   expect(document.activeElement).toBe(field());
   expect(inView(field())).toBe(true);
   expect(dropped).toBeGreaterThan(0);
-  expect(scrolled).not.toContain(dropped);
-  // A late-scroll is expected here: the scroll event came late, so the window
-  // was aimed a frame before the drop.
+  expect(scrolls).not.toContain(dropped);
+  // When the scroll event came late, the window was aimed a frame before the
+  // drop (a late-scroll), as it should.
   logged.splice(0);
 });

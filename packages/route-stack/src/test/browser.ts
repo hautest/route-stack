@@ -1,12 +1,7 @@
 // Helpers of the browser tests, kept out of the build (rslib.config.ts).
 
-export const wait = (ms: number) =>
-  new Promise((resolve) => setTimeout(resolve, ms));
 export const frame = () =>
   new Promise((resolve) => requestAnimationFrame(resolve));
-export const frames = async (count: number) => {
-  for (let i = 0; i < count; i++) await frame();
-};
 
 export const hosts = () => [
   ...document.querySelectorAll<HTMLElement>("[data-stack-screen]"),
@@ -14,17 +9,60 @@ export const hosts = () => [
 export const lifted = () =>
   hosts().filter((host) => host.style.position === "fixed");
 
-// Until no layer is up: the slide ended in settle. Polled, not a fixed wait, so
-// a loaded machine does not fail it.
-export const settled = async () => {
-  const deadline = performance.now() + 3000;
-  while (lifted().length) {
-    if (performance.now() > deadline)
-      throw new Error("the slide did not settle");
+// Polled each frame until true. The deadline only turns a state that never
+// comes into a failure; no test waits on time.
+export async function until(ready: () => boolean, what = "the state") {
+  const deadline = performance.now() + 5000;
+  while (!ready()) {
+    if (performance.now() > deadline) throw new Error(`${what} never came`);
     await frame();
   }
-  // The re-render that unmounts pruned screens.
-  await frame();
+}
+
+// Until no layer is up: the slide ended in settle. A prune's re-render comes
+// after: a test counting screens waits for them too.
+export const settled = () => until(() => !lifted().length, "the settle");
+
+// The window at `y`, its scroll event handled (the stack saves scrolls there:
+// its listener came first).
+export async function scrolled(y: number) {
+  if (Math.round(scrollY) === y) return;
+  let seen = false;
+  const onScroll = () => (seen ||= Math.round(scrollY) === y);
+  addEventListener("scroll", onScroll);
+  try {
+    scrollTo(0, y);
+    await until(() => seen, `the window at ${y}`);
+  } finally {
+    removeEventListener("scroll", onScroll);
+  }
+}
+
+// A slide held where it is, for a test acting mid-slide however slow the
+// machine; finished, it settles as if played.
+export const pauseSlide = () => {
+  for (const animation of document.getAnimations()) animation.pause();
+};
+export const finishSlide = () => {
+  for (const animation of document.getAnimations()) animation.finish();
+};
+// The slide played to its end and still up (a back awaiting its commit). Not
+// none: a slide already settled has no animation either.
+export const rested = () => {
+  const animations = document.getAnimations();
+  return (
+    animations.length > 0 &&
+    animations.every((animation) => animation.playState === "finished")
+  );
+};
+// Each animation held at `progress` of its time (eased, the screens are
+// further along).
+export const slideAt = (progress: number) => {
+  for (const animation of document.getAnimations()) {
+    animation.pause();
+    animation.currentTime =
+      progress * Number(animation.effect!.getTiming().duration);
+  }
 };
 
 // Per animation frame: the window scroll and how many layers are up.
@@ -44,21 +82,30 @@ export function recordFrames() {
 
 // The cause of the blank frame on iOS WebKit: the layers dropped and the window
 // scrolled in the same frame. The window must already be where the screen sits
-// when the layers drop.
-export const scrollsWhenDropping = (samples: { y: number; lifted: number }[]) =>
-  samples.filter(
+// when the layers drop. A record without a frame of the layers up compares
+// nothing: started once the slide is (it takes its first frame at once).
+export const scrollsWhenDropping = (
+  samples: { y: number; lifted: number }[],
+) => {
+  if (!samples.some((sample) => sample.lifted))
+    throw new Error("no frame recorded the layers up");
+  return samples.filter(
     (sample, index) =>
       index > 0 &&
       samples[index - 1]!.lifted > 0 &&
       sample.lifted === 0 &&
       sample.y !== samples[index - 1]!.y,
   );
+};
 
 export interface TouchOptions {
   on?: Element | undefined;
   cancelable?: boolean;
   id?: number;
   fingers?: number;
+  // The event's time (ms): the swipe reads its speed from these, so a test
+  // gives them rather than waiting.
+  at?: number;
 }
 
 // A plain event carrying the touch points the swipe reads: desktop WebKit
@@ -68,7 +115,7 @@ export function dispatchTouch(
   type: string,
   x: number,
   y = 300,
-  { cancelable = true, id = 1, fingers = 1 }: TouchOptions = {},
+  { cancelable = true, id = 1, fingers = 1, at }: TouchOptions = {},
 ) {
   const point = { identifier: id, target, clientX: x, clientY: y };
   const ended = type === "touchend" || type === "touchcancel";
@@ -79,6 +126,8 @@ export function dispatchTouch(
       changedTouches: [point],
     },
   );
+  if (at !== undefined)
+    Object.defineProperty(event, "timeStamp", { value: at });
   target.dispatchEvent(event);
   return event;
 }
