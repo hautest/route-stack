@@ -54,15 +54,11 @@ jobs:
           - name: chromium
             os: ubuntu-latest
             browser: chromium
-            args: --project unit --project "browser (chromium)" --project "browser-basepath*"
           - name: webkit
             # macOS: Linux's WebKit build differs from Safari's (its Navigation
             # API among others), and the WebKit tests stand for iOS WebViews.
             os: macos-latest
             browser: webkit
-            # A page per file: WebKit allows a page 100 history writes per 10
-            # seconds, and files sharing a page go past it.
-            args: --project "browser (webkit)" --maxWorkers=7
     steps:
       - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v6
@@ -73,4 +69,15 @@ jobs:
       - run: pnpm install --frozen-lockfile
       # With its system libraries on Linux; macOS needs none.
       - run: pnpm -C packages/route-stack exec playwright install --with-deps ${{ matrix.browser }}
-      - run: pnpm -C packages/route-stack exec vitest run ${{ matrix.args }}
+      # One file at a time, so no test shares the machine with another.
+      - if: matrix.name == 'chromium'
+        working-directory: packages/route-stack
+        run: pnpm exec vitest run --project unit --project "browser (chromium)" --project "browser-basepath*" --maxWorkers=1 --no-file-parallelism
+      # A process per file: WebKit allows a page 100 history writes per 10
+      # seconds, and files sharing a page go past it.
+      - if: matrix.name == 'webkit'
+        working-directory: packages/route-stack
+        run: |
+          for file in $(find src -name '*.browser.test.*' ! -name '*.basepath.*' | sort); do
+            pnpm exec vitest run --project "browser (webkit)" "$file"
+          done

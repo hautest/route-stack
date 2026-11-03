@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, test, vi } from "vitest";
+import { slideAt } from "../test/browser";
 import { background } from "./layers";
 import { slide, type Layer } from "./slide";
 import { android, ios, material } from "./transitions";
@@ -189,16 +190,11 @@ describe("slide", () => {
   test("a second play, turning a running one around, ends exactly at the other end", async () => {
     const pair = screens();
     root = pair.root;
-    // Long enough to still be playing when turned, on a loaded machine.
-    const control = slide(
-      pair.enter,
-      pair.leave,
-      { ...ios, duration: 600 },
-      true,
-    );
+    const control = slide(pair.enter, pair.leave, fast, true);
     control.seek(0.5);
     void control.play(true);
-    await new Promise((resolve) => setTimeout(resolve, 100));
+    // Held partway through the play.
+    slideAt(0.3);
     const turned = control.progress;
     expect(turned).toBeGreaterThan(0.5);
     expect(turned).toBeLessThan(1);

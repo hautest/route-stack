@@ -4,6 +4,7 @@ import { createRoot } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { defaultSameScreen } from "../history/screens";
 import type { SameScreen } from "../types";
+import { until } from "../test/browser";
 import { onRouterTransitionStart, Stack } from "./next";
 
 // Next's URL hooks, as the router renders them: the new URL in the render of a
@@ -167,12 +168,12 @@ test("a render of the page left while Next has not rendered a back is not that e
 
   go("/home", "");
   app.render();
-  await new Promise((resolve) => requestAnimationFrame(resolve));
-  expect(
+  const pages = () =>
     [...document.querySelectorAll("[data-page]")].map(
       (page) => page.textContent,
-    ),
-  ).toEqual(["/home"]);
+    );
+  await until(() => pages().join() === "/home", "only /home kept");
+  expect(pages()).toEqual(["/home"]);
 });
 
 // A proxy that changes only the query: the pushed URL is not the hinted one,
