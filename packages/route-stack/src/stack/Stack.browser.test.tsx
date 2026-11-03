@@ -960,6 +960,22 @@ describe("edge swipe", () => {
     expect(location.pathname).toBe(at("/home"));
   });
 
+  // As iOS: a flick back toward the edge cancels, however far it was dragged.
+  test("a flick back toward the edge stays, though dragged past 40%", async () => {
+    app = mount();
+    app.push(at("/post"));
+    await settled();
+
+    await drag(innerWidth * 0.7);
+    // Rested: only the flick is within the speed's last 100ms.
+    await wait(150);
+    touch("touchmove", innerWidth * 0.6);
+    touch("touchmove", innerWidth * 0.5);
+    touch("touchend", innerWidth * 0.5);
+    await settled();
+    expect(location.pathname).toBe(at("/post"));
+  });
+
   test("ten cancels in a row leave the page and the swipe as they were", async () => {
     app = mount();
     app.push(at("/post"));

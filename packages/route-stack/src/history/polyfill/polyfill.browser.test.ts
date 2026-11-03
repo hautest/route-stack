@@ -201,6 +201,41 @@ describe("fragment entries: no stamp, known by URL", () => {
   });
 });
 
+// The stamp goes into a plain object only: anything else (a string, an array,
+// a Map) is the app's to keep as it gave it, and its entry is known by URL.
+describe("an app's own state", () => {
+  test("a state that is not a plain object is kept as is, its entry known", async () => {
+    const start = entries.current();
+    history.pushState("text", "", "?state=text");
+    expect(history.state).toBe("text");
+    const text = entries.current();
+    expect(text.index).toBe(start.index + 1);
+
+    history.pushState([1, 2], "", "?state=array");
+    expect(history.state).toEqual([1, 2]);
+    const array = entries.current();
+    expect(array.index).toBe(text.index + 1);
+
+    history.pushState(new Map([["a", 1]]), "", "?state=map");
+    expect(history.state).toBeInstanceOf(Map);
+
+    await traverse(() => history.back());
+    expect(entries.current()).toEqual(array);
+    await traverse(() => history.back());
+    expect(entries.current()).toEqual(text);
+    await traverse(() => history.forward());
+    expect(entries.current()).toEqual(array);
+  });
+
+  test("a replace with one keeps the entry", () => {
+    const before = entries.current();
+    history.replaceState(new Date(0), "", "?state=date");
+    expect(history.state).toBeInstanceOf(Date);
+    expect(entries.current().key).toBe(before.key);
+    expect(entries.current().index).toBe(before.index);
+  });
+});
+
 describe("listeners", () => {
   test("a throwing listener fails neither the push nor the other listeners", () => {
     const reported: unknown[] = [];

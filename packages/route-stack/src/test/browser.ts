@@ -45,13 +45,13 @@ export function recordFrames() {
 // The cause of the blank frame on iOS WebKit: the layers dropped and the window
 // scrolled in the same frame. The window must already be where the screen sits
 // when the layers drop.
-export const scrollsWhenDropping = (frames: { y: number; lifted: number }[]) =>
-  frames.filter(
+export const scrollsWhenDropping = (samples: { y: number; lifted: number }[]) =>
+  samples.filter(
     (sample, index) =>
       index > 0 &&
-      frames[index - 1]!.lifted > 0 &&
+      samples[index - 1]!.lifted > 0 &&
       sample.lifted === 0 &&
-      sample.y !== frames[index - 1]!.y,
+      sample.y !== samples[index - 1]!.y,
   );
 
 export interface TouchOptions {
