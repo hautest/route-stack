@@ -65,6 +65,23 @@ test("a push forgets the entries it cut: lookups stay with the entries history h
   expect(history.lookups - before).toBeLessThanOrEqual(2 * 3);
 });
 
+// A replace that moved an entry to another screen leaves the old screen's place
+// there until that entry is cut: a render of the old screen committing late
+// (after a push and a back) is still a replace, not a push.
+test("a screen replaced away keeps its place until its entry is cut", () => {
+  const history = entries(at("k0", 0, "/"));
+  history.move(at("e", 1, "/post"), "push");
+  const post = history.map.screenOf("e");
+  history.move(at("e", 1, "/other"), "replace");
+  const other = history.map.screenOf("e");
+  expect(other).not.toBe(post);
+  expect(history.map.direction(post, other)).toBe("replace");
+
+  history.move(at("t", 2, "/third"), "push");
+  history.move(at("e", 1, "/other"), "traverse");
+  expect(history.map.direction(post, other)).toBe("replace");
+});
+
 test("the default: a push to the same pathname and query, a replace to the same pathname", () => {
   for (const type of ["push", "replace"] as const) {
     expect(defaultSameScreen("/a?x=1", "/a?x=1#c", type)).toBe(true);
