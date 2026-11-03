@@ -7,7 +7,8 @@ const EDGE = 20;
 const SLOP = 10;
 // Release decision: back when the finger covered this share of the way it
 // had to the right edge (from mid-screen, 40% of the width is out of reach),
-// or its speed over the last moves before the release is above this (px/ms).
+// or its speed over the last moves before the release is above this (px/ms);
+// a flick as fast back toward the edge stays.
 // Not the average since the touch began (stackflow): the finger resting before
 // a flick drags that down, so flicks did not go back.
 const BACK_AT = 0.4;
@@ -189,7 +190,11 @@ export function listenSwipe(begin: () => Drag | null): Swipe {
     const speed = (touch.clientX - x1) / (event.timeStamp - time1 || 1);
     const room = Math.max(1, innerWidth - finger.x0);
 
-    release((touch.clientX - finger.x0) / room > BACK_AT || speed > BACK_SPEED);
+    // However far it was dragged, as iOS.
+    release(
+      speed > -BACK_SPEED &&
+        ((touch.clientX - finger.x0) / room > BACK_AT || speed > BACK_SPEED),
+    );
   }
 
   // The system took the touch (a gesture of its own): stay, wherever the

@@ -16,11 +16,21 @@ type Stamp = Pick<Entry, "key" | "index">;
 const readStamp = (state: unknown) =>
   isObject(state) ? (state[STATE] as Stamp | undefined) : undefined;
 
+/**
+ * A state the stamp can go into: none, or a plain object. Anything else (a
+ * string, an array, a Map) would not survive the spread: it is kept as the app
+ * gave it, and its entry known by URL instead.
+ */
+const stampable = (state: unknown) =>
+  state == null ||
+  (isObject(state) &&
+    [Object.prototype, null].includes(Object.getPrototypeOf(state)));
+
 // Not the URL: a fragment navigation keeps the state, not the URL.
-const stamp = (state: unknown, { key, index }: Stamp) => ({
-  ...(isObject(state) ? state : {}),
-  [STATE]: { key, index },
-});
+const stamp = (state: unknown, { key, index }: Stamp) =>
+  stampable(state)
+    ? { ...(isObject(state) ? state : {}), [STATE]: { key, index } }
+    : state;
 
 const at = (entry: Stamp): Entry => ({ ...entry, url: location.href });
 
@@ -42,11 +52,14 @@ export function polyfill(): Entries {
   const known = new Map([[current.key, current.index]]);
   /**
    * Entries that can't carry a stamp, known by URL instead: fragment
-   * navigations (#anchor) and entries made before this module loaded. Their
-   * state is left alone, since routers read it (Next.js reloads on a state
-   * without its own fields, React Router reads idx).
+   * navigations (#anchor), entries made before this module loaded, and ones
+   * whose state is not a plain object. Their state is left alone, since
+   * routers read it (Next.js reloads on a state without its own fields, React
+   * Router reads idx).
    */
   const unstamped = new Map<string, Stamp>();
+  if (!loaded && !stampable(history.state))
+    unstamped.set(location.href, current);
 
   const listeners = new Set<(event: NavigationEvent) => void>();
   // As the DOM dispatches events: a snapshot of the listeners, and a throwing
@@ -69,15 +82,17 @@ export function polyfill(): Entries {
     notify(type, from);
   };
 
-  // A push cuts the entries after the current one. Unstamped entries share the
+  // A push cuts the entries after the current one. Fragment entries share the
   // index of the entry they came from, so other unstamped ones at the current
   // index go too: a stale one must never be found again by its URL (a forgotten
   // one only gets a new key if traversed back to; same pathname, same screen).
   // A stamped one at the current index is behind the current entry (the page a
   // fragment came from) and stays. ponytail: entries made before this module
   // loaded share one index, so the order among them is unknown: a push may
-  // forget one still behind, or keep a stamped one already cut. Only the
-  // Navigation API orders entries exactly; the module loads with the app,
+  // forget one still behind, or keep a stamped one already cut. And entries
+  // known by URL can't be told apart at one URL: two pushes of a non-plain
+  // state to the same URL leave the second's stamp for both, until a push. Only
+  // the Navigation API orders entries exactly; the module loads with the app,
   // before any navigation.
   history.pushState = (data, unused, url) => {
     const entry = { key: newKey(), index: current.index + 1 };
@@ -94,6 +109,7 @@ export function polyfill(): Entries {
       if (index > current.index) known.delete(key);
     }
 
+    if (!stampable(data)) unstamped.set(location.href, entry);
     enter("push", entry);
   };
 
@@ -104,6 +120,7 @@ export function polyfill(): Entries {
 
     const from = current;
     replaceState.call(history, stamp(data, current), unused, url);
+    if (!stampable(data)) unstamped.set(location.href, current);
     current = at(current);
     notify("replace", from);
   };

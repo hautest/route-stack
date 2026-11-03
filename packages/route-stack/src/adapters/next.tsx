@@ -95,8 +95,9 @@ declare const process: {
 const basePath = process.env.__NEXT_ROUTER_BASEPATH || "";
 const trailingSlash = process.env.__NEXT_TRAILING_SLASH;
 
+// At a segment boundary: with "/app", "/apple" is not under it.
 const removeBasePath = (pathname: string) =>
-  basePath && pathname.startsWith(basePath)
+  basePath && (pathname === basePath || pathname.startsWith(`${basePath}/`))
     ? pathname.slice(basePath.length) || "/"
     : pathname;
 

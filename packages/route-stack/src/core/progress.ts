@@ -8,13 +8,17 @@ const PROGRESS = "--route-stack-progress";
 export class ProgressVar {
   enabled = false;
   private ticking = false;
+  /** The value on the root now: written again it would restyle for nothing. */
+  private written: number | null = null;
 
   write(value: number) {
-    if (this.enabled)
-      document.documentElement.style.setProperty(PROGRESS, String(value));
+    if (!this.enabled || value === this.written) return;
+    this.written = value;
+    document.documentElement.style.setProperty(PROGRESS, String(value));
   }
 
   clear() {
+    this.written = null;
     document.documentElement.style.removeProperty(PROGRESS);
   }
 

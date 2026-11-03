@@ -95,9 +95,20 @@ export function createScreenMap(
 
       // backScreen() and kept() go through the entries known: not the ones a
       // push cut, which never come back.
-      if (type === "push")
+      if (type === "push") {
+        const cut = new Set<string>();
         for (const key of screens.keys())
-          if (entries.indexOf(key) === null) screens.delete(key);
+          if (entries.indexOf(key) === null) {
+            screens.delete(key);
+            cut.add(key);
+          }
+        // A screen whose last entry was cut never comes back: its record goes
+        // too, or a long-lived WebView keeps one per screen ever shown. Not one
+        // no entry shows: a replace moved that entry to another screen, and a
+        // late render of the old one is still that replace.
+        for (const [gone, entry] of last)
+          if (cut.has(entry.key)) last.delete(gone);
+      }
     },
     screenOf: (key) => screens.get(key) ?? null,
     backScreen() {
