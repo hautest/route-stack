@@ -299,11 +299,8 @@ describe("Stack", () => {
     expect(await progressUntilSettled()).toEqual([]);
     app.unmount();
 
-    // Long enough for several frames: 60ms gave WebKit two.
-    app = mount({
-      enableProgressCssVar: true,
-      animate: () => ({ ...fast, duration: 300 }),
-    });
+    // Long enough for several frames: 300ms gave a slow runner's WebKit two.
+    app = mount({ enableProgressCssVar: true, animate: () => slow });
     app.push(at("/next"));
     const values = await progressUntilSettled();
     expect(values.length).toBeGreaterThan(2);
