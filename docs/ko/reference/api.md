@@ -108,18 +108,18 @@ interface AdapterProps {
 
 ## CSS 변수 {#css-variables}
 
-| 변수                     | 설정 위치      | 시점                                                                                  |
-| ------------------------ | -------------- | ------------------------------------------------------------------------------------- |
-| `--route-stack-progress` | `<html>`       | `enableProgressCssVar`가 켜져 있을 때 슬라이드 중. 값은 `0`부터 `1`까지               |
-| `--route-stack-overflow` | 띄운 두 screen | 슬라이드 중에는 `hidden`. `overflow-x: var(--route-stack-overflow, auto)` 형태로 사용 |
+| 변수                     | 설정 위치 | 시점                                                                    |
+| ------------------------ | --------- | ----------------------------------------------------------------------- |
+| `--route-stack-progress` | `<html>`  | `enableProgressCssVar`가 켜져 있을 때 슬라이드 중. 값은 `0`부터 `1`까지 |
 
 ## Data 속성 {#data-attributes}
 
-| 속성                 | 요소                                          |
-| -------------------- | --------------------------------------------- |
-| `data-stack-root`    | 스택 루트                                     |
-| `data-stack-screen`  | 각 screen의 host(슬라이드 때 움직이는 레이어) |
-| `data-stack-content` | 각 screen의 내용(React가 숨기는 요소)         |
+| 속성                   | 요소                                                                                                                        |
+| ---------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| `data-stack-root`      | 스택 루트                                                                                                                   |
+| `data-stack-screen`    | 각 screen의 host(슬라이드 때 움직이는 레이어)                                                                               |
+| `data-stack-content`   | 각 screen의 내용(React가 숨기는 요소)                                                                                       |
+| `data-stack-animating` | 슬라이드 중 띄운 두 screen. [스크롤과 레이어](/ko/guide/scroll-and-layers#elements-on-their-own-layer-data-stack-animating) |
 
 앱이 다는 속성:
 

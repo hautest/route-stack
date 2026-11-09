@@ -88,11 +88,14 @@ h2 {
 .carousel {
   display: flex;
   gap: 12px;
-  overflow-x: var(--route-stack-overflow, auto);
+  overflow-x: auto;
   scroll-snap-type: x mandatory;
   scroll-padding: 0 16px;
   margin: 0 -16px;
   padding: 0 16px 4px;
+}
+[data-stack-animating] .carousel {
+  overflow-x: hidden;
 }
 .tile {
   flex: 0 0 120px;

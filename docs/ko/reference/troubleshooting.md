@@ -23,17 +23,9 @@ iOS의 Chrome과 Firefox도 이 조건에 걸립니다. 두 브라우저에도 �
 
 홈 화면에 추가한 웹앱(`display-mode: standalone`)에는 Safari 스와이프가 없으므로 스택의 스와이프를 켜 둡니다.
 
-## 슬라이드 중 스크롤 요소가 깜빡임 (iOS) {#a-scroller-flashes-during-a-slide-ios}
+## 슬라이드가 시작될 때 캐러셀이나 스크롤 요소가 깜빡임 (iOS) {#a-carousel-or-scroller-flashes-when-a-slide-starts-ios}
 
-screen이 움직이는 동안 가로 캐러셀이나 `overflow: auto` 요소가 한 프레임 비어 보입니다. 이럴 때는 overflow 변수를 쓰면 됩니다.
-
-```css
-.carousel {
-  overflow-x: var(--route-stack-overflow, auto);
-}
-```
-
-자세한 내용은 [스크롤과 레이어](/ko/guide/scroll-and-layers#horizontal-scrollers-route-stack-overflow)에 있습니다.
+요소를 자기 레이어에 따로 그리고 있기 때문입니다. 어떤 요소가 그런지는 Safari Web Inspector의 Layers 탭에서 볼 수 있습니다. `[data-stack-animating]` 아래에서는 따로 그리지 않게 하면 됩니다. 자세한 내용은 [스크롤과 레이어](/ko/guide/scroll-and-layers#elements-on-their-own-layer-data-stack-animating)에 있습니다.
 
 ## 긴 페이지에서 back이 늦게 시작함 {#back-starts-late-on-a-long-page}
 

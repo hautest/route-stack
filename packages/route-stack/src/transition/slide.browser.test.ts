@@ -21,6 +21,8 @@ function screens() {
   return { root, enter: host(), leave: host() };
 }
 
+const marked = ({ host }: Layer) => host.hasAttribute("data-stack-animating");
+
 const offsetX = (el: HTMLElement) =>
   new DOMMatrix(getComputedStyle(el).transform).m41;
 
@@ -42,20 +44,74 @@ describe("slide", () => {
     expect(control.progress).toBe(1);
   });
 
-  test("tells the app's scrollers not to scroll while lifted, and no more after", async () => {
+  // A contract with the app's CSS: the iOS flash itself does not reproduce in
+  // Chromium.
+  test("marks the two lifted screens while they slide, and unmarks them at the drop", async () => {
     const pair = screens();
     root = pair.root;
-    const overflow = (host: HTMLElement) =>
-      getComputedStyle(host.firstElementChild!).getPropertyValue(
-        "--route-stack-overflow",
-      );
+    const style = document.createElement("style");
+    style.textContent =
+      ".carousel { will-change: transform } [data-stack-animating] .carousel { will-change: auto }";
+    document.head.append(style);
+    for (const { host } of [pair.enter, pair.leave])
+      host.firstElementChild!.classList.add("carousel");
+    const marks = ({ host }: Layer) => [
+      host.hasAttribute("data-stack-animating"),
+      getComputedStyle(host.firstElementChild!).willChange,
+    ];
+    try {
+      const control = slide(pair.enter, pair.leave, fast, false);
+      expect(marks(pair.enter)).toEqual([true, "auto"]);
+      expect(marks(pair.leave)).toEqual([true, "auto"]);
+      await control.play(true);
+      control.end(pair.enter, true);
+      expect(marks(pair.enter)).toEqual([false, "transform"]);
+      expect(marks(pair.leave)).toEqual([false, "transform"]);
+    } finally {
+      style.remove();
+    }
+  });
+
+  test("a drop put off a frame keeps the screens marked until that frame", async () => {
+    const pair = screens();
+    root = pair.root;
+    pair.enter.scroll = 300;
     const control = slide(pair.enter, pair.leave, fast, false);
-    expect(overflow(pair.enter.host)).toBe("hidden");
-    expect(overflow(pair.leave.host)).toBe("hidden");
-    await control.play(true);
-    control.end(pair.enter, true);
-    expect(overflow(pair.enter.host)).toBe("");
-    expect(overflow(pair.leave.host)).toBe("");
+    control.end(pair.enter);
+    expect(marked(pair.enter)).toBe(true);
+    await new Promise(requestAnimationFrame);
+    expect([marked(pair.enter), marked(pair.leave)]).toEqual([false, false]);
+  });
+
+  test("a retarget marks the new screen and unmarks the one it replaces", () => {
+    const pair = screens();
+    root = pair.root;
+    const host = document.createElement("div");
+    host.append(document.createElement("div"));
+    root.append(host);
+    const redirect = { host, scroll: 0 } satisfies Layer;
+    const control = slide(pair.enter, pair.leave, fast, false);
+    control.retarget(redirect);
+    expect([pair.enter, redirect, pair.leave].map(marked)).toEqual([
+      false,
+      true,
+      true,
+    ]);
+    control.end(redirect, true);
+    expect([redirect, pair.leave].map(marked)).toEqual([false, false]);
+  });
+
+  test("a drop put off a frame leaves the marks of a slide lifted since", async () => {
+    const pair = screens();
+    root = pair.root;
+    pair.enter.scroll = 300;
+    const first = slide(pair.enter, pair.leave, fast, false);
+    first.end(pair.enter);
+    const second = slide(pair.leave, pair.enter, fast, true);
+    await new Promise(requestAnimationFrame);
+    expect([marked(pair.enter), marked(pair.leave)]).toEqual([true, true]);
+    second.end(pair.leave, true);
+    expect([marked(pair.enter), marked(pair.leave)]).toEqual([false, false]);
   });
 
   test("a drop put off a frame is pending until that frame", async () => {

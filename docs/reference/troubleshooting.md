@@ -23,17 +23,9 @@ The check also matches Chrome and Firefox on iOS, which have the same swipe. `un
 
 A web app added to the home screen (`display-mode: standalone`) has no Safari swipe, so the stack's stays on there.
 
-## A scroller flashes during a slide (iOS)
+## A carousel or scroller flashes when a slide starts (iOS)
 
-A horizontal carousel or any `overflow: auto` element goes blank for a frame while screens slide. Use the overflow variable:
-
-```css
-.carousel {
-  overflow-x: var(--route-stack-overflow, auto);
-}
-```
-
-See [Scroll & Layers](/guide/scroll-and-layers#horizontal-scrollers-route-stack-overflow).
+The element is drawn on its own layer; Safari Web Inspector's Layers tab shows which elements are. Turn that off under `[data-stack-animating]`. See [Scroll & Layers](/guide/scroll-and-layers#elements-on-their-own-layer-data-stack-animating).
 
 ## Back starts late on a long page
 

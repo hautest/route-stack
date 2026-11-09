@@ -49,21 +49,32 @@ Make shared headers and tab bars `position: fixed`, or put them inside the stack
 - Keep `transform` and similar properties off the ancestors of `<Stack>`: the layers would be placed relative to that element, not the viewport. For the list of properties, see [Troubleshooting](/reference/troubleshooting#screens-slide-to-the-wrong-place-or-vanish).
 - Portals (modals, toasts) render outside the stack and stay put. Closing them on navigation is the app's job.
 
-## Horizontal scrollers: `--route-stack-overflow`
+## Elements on their own layer: `data-stack-animating`
 
-On iOS, WebKit paints a scrolling element inside a lifted layer blank for one frame whenever the window scrolls behind the layers. The stack scrolls the window behind the layers during every slide, so carousels and other scrollers can flash.
+On iOS, an element WebKit draws on its own layer (a composited layer) goes blank for a frame or two when a slide starts ([WebKit bug 310087](https://bugs.webkit.org/show_bug.cgi?id=310087)). WebKit draws these on their own layer:
 
-The fix is one CSS variable. The stack sets `--route-stack-overflow: hidden` on the two lifted screens during a slide, and nowhere else. Use it for the overflow of your scrollers:
+- `translate3d()`, `translateZ()`, `rotateX()`, `rotateY()`, `matrix3d()`
+- `perspective`, `transform-style: preserve-3d`, `backface-visibility: hidden`, with a 3D transform
+- `will-change: transform`, `will-change: opacity`, `will-change: filter`
+- A running animation or transition of `transform`, `opacity` or `filter`
+- `filter`, `backdrop-filter`
+- `overflow: auto` or `overflow: scroll` whose content overflows
+- `<video>`, `<canvas>`, `<iframe>` (in some cases)
+
+An element drawn over one of these, or a parent of one with a transform, `opacity` or `filter`, can be drawn on its own layer too. Safari Web Inspector's Layers tab shows each layer and why.
+
+The stack sets `data-stack-animating` on the two sliding screens. Under it, stop drawing those elements on their own layer:
 
 ```css
-.carousel {
-  overflow-x: var(--route-stack-overflow, auto);
+[data-stack-animating] .carousel {
+  overflow-x: hidden;
+  will-change: auto;
 }
 ```
 
-- At rest the variable is unset and the fallback (`auto`) applies.
-- During a slide the element is not scrollable, so it is painted with its layer. `hidden` keeps `scrollLeft`: nothing moves.
-- It costs nothing: the variable is set once when a slide starts and removed when it ends, on the two screens only.
+A scroller set to `hidden` keeps its `scrollLeft`: nothing moves.
+
+Any of these set from JavaScript as an inline style cannot be turned off this way. Do not set them inline on elements inside a screen.
 
 ## Long lists
 

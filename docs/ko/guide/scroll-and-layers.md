@@ -49,21 +49,32 @@ CSS에는 다음과 같은 영향이 있습니다.
 - `<Stack>`의 조상에는 `transform` 같은 속성을 걸면 안 됩니다. 레이어가 viewport가 아니라 그 요소를 기준으로 놓입니다. 해당 속성 목록은 [트러블슈팅](/ko/reference/troubleshooting#screens-slide-to-the-wrong-place-or-vanish)에 있습니다.
 - portal(모달, 토스트)은 스택 밖에 렌더되므로 제자리에 있습니다. screen을 이동할 때 닫는 처리는 앱에서 해야 합니다.
 
-## 가로 스크롤 요소: `--route-stack-overflow` {#horizontal-scrollers-route-stack-overflow}
+## 자기 레이어에 따로 그리는 요소: `data-stack-animating` {#elements-on-their-own-layer-data-stack-animating}
 
-iOS WebKit에서는 레이어 뒤에서 window가 스크롤될 때마다, 떠오른 레이어 안의 스크롤 요소가 한 프레임 동안 빈 채로 그려집니다. 스택은 전환할 때마다 레이어 뒤에서 window를 스크롤하므로 캐러셀 같은 스크롤 요소가 깜빡일 수 있습니다.
+iOS에서는 자기 레이어에 따로 그리는 요소(합성 레이어)가 전환이 시작될 때 1~2프레임 비어 보입니다([WebKit 버그 310087](https://bugs.webkit.org/show_bug.cgi?id=310087)). WebKit은 다음 요소를 자기 레이어에 따로 그립니다.
 
-CSS 변수 하나로 해결할 수 있습니다. 스택은 전환하는 동안 떠오른 두 screen에만 `--route-stack-overflow: hidden`을 설정합니다. 스크롤 요소의 overflow 값에 이 변수를 쓰면 됩니다.
+- `translate3d()`, `translateZ()`, `rotateX()`, `rotateY()`, `matrix3d()`
+- 3D transform과 함께 쓴 `perspective`, `transform-style: preserve-3d`, `backface-visibility: hidden`
+- `will-change: transform`, `will-change: opacity`, `will-change: filter`
+- 실행 중인 `transform`, `opacity`, `filter` 애니메이션이나 transition
+- `filter`, `backdrop-filter`
+- 내용이 넘치는 `overflow: auto`, `overflow: scroll`
+- `<video>`, `<canvas>`, `<iframe>`(경우에 따라)
+
+이 요소 위에 겹쳐 그려지는 요소나, 이 요소를 감싸면서 transform, `opacity`, `filter`가 걸린 부모도 따로 그려질 수 있습니다. Safari Web Inspector의 Layers 탭에서 각 레이어와 그 이유를 볼 수 있습니다.
+
+스택은 움직이는 두 screen에 `data-stack-animating`을 붙입니다. 이 속성 아래에서는 요소를 따로 그리지 않게 하면 됩니다.
 
 ```css
-.carousel {
-  overflow-x: var(--route-stack-overflow, auto);
+[data-stack-animating] .carousel {
+  overflow-x: hidden;
+  will-change: auto;
 }
 ```
 
-- 평소에는 변수가 없으므로 기본값(`auto`)이 적용됩니다.
-- 전환하는 동안에는 요소가 스크롤되지 않으므로 레이어와 함께 그려집니다. `hidden`이어도 `scrollLeft`는 그대로라서 아무것도 움직이지 않습니다.
-- 추가 비용은 없습니다. 변수는 전환이 시작될 때 한 번 설정되고 끝날 때 제거되며, 두 screen에만 적용됩니다.
+`hidden`이어도 `scrollLeft`는 그대로라서 아무것도 움직이지 않습니다.
+
+위 항목을 JavaScript가 인라인 스타일로 걸면 이 방법으로는 대응할 수 없습니다. 화면 안의 요소에는 인라인으로 걸지 마세요.
 
 ## 긴 목록 {#long-lists}
 
