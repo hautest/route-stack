@@ -61,8 +61,6 @@ On iOS, a composited element goes blank for a frame when a slide starts ([WebKit
 ```
 
 - Restate a position given by `translate3d()` in 2D (`translate(-100%, 0)`) instead of removing it.
-- An inline `translate3d()` (Embla Carousel) cannot be restated from CSS: patch it to write `translate()`.
-- `--route-stack-overflow` still works, but is deprecated and will be removed in 1.0.
 
 ## Long lists
 

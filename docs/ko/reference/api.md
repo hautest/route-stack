@@ -108,10 +108,9 @@ interface AdapterProps {
 
 ## CSS 변수 {#css-variables}
 
-| 변수                     | 설정 위치      | 시점                                                                                      |
-| ------------------------ | -------------- | ----------------------------------------------------------------------------------------- |
-| `--route-stack-progress` | `<html>`       | `enableProgressCssVar`가 켜져 있을 때 슬라이드 중. 값은 `0`부터 `1`까지                   |
-| `--route-stack-overflow` | 띄운 두 screen | deprecated, 1.0에서 제거됩니다. `data-stack-animating`을 쓰세요. 슬라이드 중에는 `hidden` |
+| 변수                     | 설정 위치 | 시점                                                                    |
+| ------------------------ | --------- | ----------------------------------------------------------------------- |
+| `--route-stack-progress` | `<html>`  | `enableProgressCssVar`가 켜져 있을 때 슬라이드 중. 값은 `0`부터 `1`까지 |
 
 ## Data 속성 {#data-attributes}
 

@@ -54,18 +54,15 @@ describe("slide", () => {
     const marks = ({ host }: Layer) => [
       host.hasAttribute("data-stack-animating"),
       getComputedStyle(host.firstElementChild!).willChange,
-      getComputedStyle(host.firstElementChild!).getPropertyValue(
-        "--route-stack-overflow",
-      ),
     ];
     try {
       const control = slide(pair.enter, pair.leave, fast, false);
-      expect(marks(pair.enter)).toEqual([true, "auto", "hidden"]);
-      expect(marks(pair.leave)).toEqual([true, "auto", "hidden"]);
+      expect(marks(pair.enter)).toEqual([true, "auto"]);
+      expect(marks(pair.leave)).toEqual([true, "auto"]);
       await control.play(true);
       control.end(pair.enter, true);
-      expect(marks(pair.enter)).toEqual([false, "transform", ""]);
-      expect(marks(pair.leave)).toEqual([false, "transform", ""]);
+      expect(marks(pair.enter)).toEqual([false, "transform"]);
+      expect(marks(pair.leave)).toEqual([false, "transform"]);
     } finally {
       style.remove();
     }

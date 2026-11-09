@@ -61,8 +61,6 @@ iOS에서는 전환이 시작될 때 합성되는 요소가 한 프레임 비어
 ```
 
 - `translate3d()`로 정한 위치는 지우지 말고 2D(`translate(-100%, 0)`)로 바꿔 씁니다.
-- 인라인 `translate3d()`(Embla Carousel)는 CSS로 바꿀 수 없으니 `translate()`를 쓰도록 패치합니다.
-- `--route-stack-overflow`는 아직 동작하지만 deprecated이며 1.0에서 제거됩니다.
 
 ## 긴 목록 {#long-lists}
 
