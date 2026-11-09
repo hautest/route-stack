@@ -53,16 +53,15 @@ Make shared headers and tab bars `position: fixed`, or put them inside the stack
 
 On iOS, an element WebKit draws on its own layer goes blank for a frame when a slide starts ([WebKit bug 310087](https://bugs.webkit.org/show_bug.cgi?id=310087)). WebKit draws these on their own layer:
 
-| Case                     | CSS / HTML                                                                                                             |
-| ------------------------ | ---------------------------------------------------------------------------------------------------------------------- |
-| 3D transform             | `translate3d()`, `translateZ()`, `rotateX()`, `rotateY()`, `matrix3d()`, `perspective`, `transform-style: preserve-3d` |
-| Hidden back face         | `backface-visibility: hidden`                                                                                          |
-| `will-change`            | `will-change: transform`, `opacity`, `filter`                                                                          |
-| Running animation        | An animation or transition of `transform`, `opacity` or `filter`                                                       |
-| Filter                   | `filter`, `backdrop-filter`                                                                                            |
-| Scroller                 | `overflow: auto`, `overflow: scroll`                                                                                   |
-| Position (in some cases) | `position: fixed`, `position: sticky`, anchor positioning                                                              |
-| Media (in some cases)    | `<video>`, an accelerated `<canvas>`, `<iframe>`                                                                       |
+- `translate3d()`, `translateZ()`, `rotateX()`, `rotateY()`, `matrix3d()`
+- `perspective`, `transform-style: preserve-3d`
+- `backface-visibility: hidden`
+- `will-change: transform`, `will-change: opacity`, `will-change: filter`
+- A running animation or transition of `transform`, `opacity` or `filter`
+- `filter`, `backdrop-filter`
+- `overflow: auto`, `overflow: scroll`
+- `position: fixed`, `position: sticky`, `position-anchor` (in some cases)
+- `<video>`, `<canvas>`, `<iframe>` (in some cases)
 
 An element that overlaps or contains one of these can be drawn on its own layer too. Safari Web Inspector's Layers tab shows each layer and why.
 

@@ -53,16 +53,15 @@ CSS에는 다음과 같은 영향이 있습니다.
 
 iOS에서는 자기 레이어에 따로 그리는 요소가 전환이 시작될 때 한 프레임 비어 보입니다([WebKit 버그 310087](https://bugs.webkit.org/show_bug.cgi?id=310087)). WebKit은 다음 요소를 자기 레이어에 따로 그립니다.
 
-| 경우                 | CSS / HTML                                                                                                             |
-| -------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| 3D transform         | `translate3d()`, `translateZ()`, `rotateX()`, `rotateY()`, `matrix3d()`, `perspective`, `transform-style: preserve-3d` |
-| 뒷면 숨김            | `backface-visibility: hidden`                                                                                          |
-| `will-change`        | `will-change: transform`, `opacity`, `filter`                                                                          |
-| 실행 중인 애니메이션 | `transform`, `opacity`, `filter`의 애니메이션이나 transition                                                           |
-| 필터                 | `filter`, `backdrop-filter`                                                                                            |
-| 스크롤 요소          | `overflow: auto`, `overflow: scroll`                                                                                   |
-| 위치(경우에 따라)    | `position: fixed`, `position: sticky`, anchor positioning                                                              |
-| 미디어(경우에 따라)  | `<video>`, 가속되는 `<canvas>`, `<iframe>`                                                                             |
+- `translate3d()`, `translateZ()`, `rotateX()`, `rotateY()`, `matrix3d()`
+- `perspective`, `transform-style: preserve-3d`
+- `backface-visibility: hidden`
+- `will-change: transform`, `will-change: opacity`, `will-change: filter`
+- 실행 중인 `transform`, `opacity`, `filter` 애니메이션이나 transition
+- `filter`, `backdrop-filter`
+- `overflow: auto`, `overflow: scroll`
+- `position: fixed`, `position: sticky`, `position-anchor`(경우에 따라)
+- `<video>`, `<canvas>`, `<iframe>`(경우에 따라)
 
 이 요소와 겹치거나 이 요소를 감싸는 요소도 따로 그려질 수 있습니다. Safari Web Inspector의 Layers 탭에서 각 레이어와 그 이유를 볼 수 있습니다.
 
