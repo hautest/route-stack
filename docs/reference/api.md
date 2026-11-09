@@ -114,12 +114,12 @@ interface AdapterProps {
 
 ## Data attributes
 
-| Attribute              | Element                                                                                                                      |
-| ---------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| `data-stack-root`      | The stack root                                                                                                               |
-| `data-stack-screen`    | Each screen host (the layer a slide moves)                                                                                   |
-| `data-stack-content`   | Each screen's content (what React hides)                                                                                     |
-| `data-stack-animating` | The two lifted screens, during a slide. [Scroll & Layers](/guide/scroll-and-layers#composited-elements-data-stack-animating) |
+| Attribute              | Element                                                                                                                              |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `data-stack-root`      | The stack root                                                                                                                       |
+| `data-stack-screen`    | Each screen host (the layer a slide moves)                                                                                           |
+| `data-stack-content`   | Each screen's content (what React hides)                                                                                             |
+| `data-stack-animating` | The two lifted screens, during a slide. [Scroll & Layers](/guide/scroll-and-layers#elements-on-their-own-layer-data-stack-animating) |
 
 Set by the app:
 

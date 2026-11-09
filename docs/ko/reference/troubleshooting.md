@@ -25,7 +25,7 @@ iOS의 Chrome과 Firefox도 이 조건에 걸립니다. 두 브라우저에도 �
 
 ## 슬라이드가 시작될 때 캐러셀이나 스크롤 요소가 깜빡임 (iOS) {#a-carousel-or-scroller-flashes-when-a-slide-starts-ios}
 
-요소가 합성되어 있기 때문입니다(`overflow: auto`, `will-change: transform`, `translate3d()`). `[data-stack-animating]` 아래에서 합성을 끄면 됩니다. 자세한 내용은 [스크롤과 레이어](/ko/guide/scroll-and-layers#composited-elements-data-stack-animating)에 있습니다.
+요소를 자기 레이어에 따로 그리고 있기 때문입니다. 어떤 요소가 그런지는 Safari Web Inspector의 Layers 탭에서 볼 수 있습니다. `[data-stack-animating]` 아래에서는 따로 그리지 않게 하면 됩니다. 자세한 내용은 [스크롤과 레이어](/ko/guide/scroll-and-layers#elements-on-their-own-layer-data-stack-animating)에 있습니다.
 
 ## 긴 페이지에서 back이 늦게 시작함 {#back-starts-late-on-a-long-page}
 

@@ -114,12 +114,12 @@ interface AdapterProps {
 
 ## Data 속성 {#data-attributes}
 
-| 속성                   | 요소                                                                                                                |
-| ---------------------- | ------------------------------------------------------------------------------------------------------------------- |
-| `data-stack-root`      | 스택 루트                                                                                                           |
-| `data-stack-screen`    | 각 screen의 host(슬라이드 때 움직이는 레이어)                                                                       |
-| `data-stack-content`   | 각 screen의 내용(React가 숨기는 요소)                                                                               |
-| `data-stack-animating` | 슬라이드 중 띄운 두 screen. [스크롤과 레이어](/ko/guide/scroll-and-layers#composited-elements-data-stack-animating) |
+| 속성                   | 요소                                                                                                                        |
+| ---------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| `data-stack-root`      | 스택 루트                                                                                                                   |
+| `data-stack-screen`    | 각 screen의 host(슬라이드 때 움직이는 레이어)                                                                               |
+| `data-stack-content`   | 각 screen의 내용(React가 숨기는 요소)                                                                                       |
+| `data-stack-animating` | 슬라이드 중 띄운 두 screen. [스크롤과 레이어](/ko/guide/scroll-and-layers#elements-on-their-own-layer-data-stack-animating) |
 
 앱이 다는 속성:
 

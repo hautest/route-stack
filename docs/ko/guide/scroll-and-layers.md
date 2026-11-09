@@ -49,9 +49,9 @@ CSS에는 다음과 같은 영향이 있습니다.
 - `<Stack>`의 조상에는 `transform` 같은 속성을 걸면 안 됩니다. 레이어가 viewport가 아니라 그 요소를 기준으로 놓입니다. 해당 속성 목록은 [트러블슈팅](/ko/reference/troubleshooting#screens-slide-to-the-wrong-place-or-vanish)에 있습니다.
 - portal(모달, 토스트)은 스택 밖에 렌더되므로 제자리에 있습니다. screen을 이동할 때 닫는 처리는 앱에서 해야 합니다.
 
-## 합성되는 요소: `data-stack-animating` {#composited-elements-data-stack-animating}
+## 자기 레이어에 따로 그리는 요소: `data-stack-animating` {#elements-on-their-own-layer-data-stack-animating}
 
-iOS에서는 전환이 시작될 때 합성되는 요소가 한 프레임 비어 보입니다([WebKit 버그 310087](https://bugs.webkit.org/show_bug.cgi?id=310087)). 스크롤 요소(`overflow: auto`)나 `will-change: transform`, `translateZ(0)`, `translate3d()`가 걸린 요소가 해당합니다. 스택은 움직이는 두 screen에 `data-stack-animating`을 붙입니다. 이 속성 아래에서 합성을 끄면 됩니다.
+iOS에서는 자기 레이어에 따로 그리는 요소가 전환이 시작될 때 한 프레임 비어 보입니다([WebKit 버그 310087](https://bugs.webkit.org/show_bug.cgi?id=310087)). 스크롤 요소(`overflow: auto`)와 `will-change`나 3D transform이 걸린 요소가 대표적입니다. 어떤 요소를 자기 레이어에 따로 그리는지는 Safari Web Inspector의 Layers 탭에서 모두 볼 수 있습니다. 스택은 움직이는 두 screen에 `data-stack-animating`을 붙입니다. 이 속성 아래에서는 요소를 따로 그리지 않게 하면 됩니다.
 
 ```css
 [data-stack-animating] .carousel {
@@ -59,8 +59,6 @@ iOS에서는 전환이 시작될 때 합성되는 요소가 한 프레임 비어
   will-change: auto;
 }
 ```
-
-- `translate3d()`로 정한 위치는 지우지 말고 2D(`translate(-100%, 0)`)로 바꿔 씁니다.
 
 ## 긴 목록 {#long-lists}
 

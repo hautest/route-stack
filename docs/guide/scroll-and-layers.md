@@ -49,9 +49,9 @@ Make shared headers and tab bars `position: fixed`, or put them inside the stack
 - Keep `transform` and similar properties off the ancestors of `<Stack>`: the layers would be placed relative to that element, not the viewport. For the list of properties, see [Troubleshooting](/reference/troubleshooting#screens-slide-to-the-wrong-place-or-vanish).
 - Portals (modals, toasts) render outside the stack and stay put. Closing them on navigation is the app's job.
 
-## Composited elements: `data-stack-animating`
+## Elements on their own layer: `data-stack-animating`
 
-On iOS, a composited element goes blank for a frame when a slide starts ([WebKit bug 310087](https://bugs.webkit.org/show_bug.cgi?id=310087)): a scroller (`overflow: auto`), or an element with `will-change: transform`, `translateZ(0)` or `translate3d()`. The stack sets `data-stack-animating` on the two sliding screens. Turn compositing off under it:
+On iOS, an element WebKit draws on its own layer goes blank for a frame when a slide starts ([WebKit bug 310087](https://bugs.webkit.org/show_bug.cgi?id=310087)). Scrollers (`overflow: auto`) and elements with `will-change` or a 3D transform are the common ones; Safari Web Inspector's Layers tab shows them all. The stack sets `data-stack-animating` on the two sliding screens. Under it, stop drawing them on their own layer:
 
 ```css
 [data-stack-animating] .carousel {
@@ -59,8 +59,6 @@ On iOS, a composited element goes blank for a frame when a slide starts ([WebKit
   will-change: auto;
 }
 ```
-
-- Restate a position given by `translate3d()` in 2D (`translate(-100%, 0)`) instead of removing it.
 
 ## Long lists
 
