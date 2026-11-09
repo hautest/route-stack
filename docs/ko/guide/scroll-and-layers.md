@@ -51,7 +51,22 @@ CSS에는 다음과 같은 영향이 있습니다.
 
 ## 자기 레이어에 따로 그리는 요소: `data-stack-animating` {#elements-on-their-own-layer-data-stack-animating}
 
-iOS에서는 자기 레이어에 따로 그리는 요소가 전환이 시작될 때 한 프레임 비어 보입니다([WebKit 버그 310087](https://bugs.webkit.org/show_bug.cgi?id=310087)). 스크롤 요소(`overflow: auto`)와 `will-change`나 3D transform이 걸린 요소가 대표적입니다. 어떤 요소를 자기 레이어에 따로 그리는지는 Safari Web Inspector의 Layers 탭에서 모두 볼 수 있습니다. 스택은 움직이는 두 screen에 `data-stack-animating`을 붙입니다. 이 속성 아래에서는 요소를 따로 그리지 않게 하면 됩니다.
+iOS에서는 자기 레이어에 따로 그리는 요소가 전환이 시작될 때 한 프레임 비어 보입니다([WebKit 버그 310087](https://bugs.webkit.org/show_bug.cgi?id=310087)). WebKit은 다음 요소를 자기 레이어에 따로 그립니다.
+
+| 경우                 | CSS / HTML                                                                                                             |
+| -------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| 3D transform         | `translate3d()`, `translateZ()`, `rotateX()`, `rotateY()`, `matrix3d()`, `perspective`, `transform-style: preserve-3d` |
+| 뒷면 숨김            | `backface-visibility: hidden`                                                                                          |
+| `will-change`        | `will-change: transform`, `opacity`, `filter`                                                                          |
+| 실행 중인 애니메이션 | `transform`, `opacity`, `filter`의 애니메이션이나 transition                                                           |
+| 필터                 | `filter`, `backdrop-filter`                                                                                            |
+| 스크롤 요소          | `overflow: auto`, `overflow: scroll`                                                                                   |
+| 위치(경우에 따라)    | `position: fixed`, `position: sticky`, anchor positioning                                                              |
+| 미디어(경우에 따라)  | `<video>`, 가속되는 `<canvas>`, `<iframe>`                                                                             |
+
+이 요소와 겹치거나 이 요소를 감싸는 요소도 따로 그려질 수 있습니다. Safari Web Inspector의 Layers 탭에서 각 레이어와 그 이유를 볼 수 있습니다.
+
+스택은 움직이는 두 screen에 `data-stack-animating`을 붙입니다. 이 속성 아래에서는 요소를 따로 그리지 않게 하면 됩니다.
 
 ```css
 [data-stack-animating] .carousel {

@@ -51,7 +51,22 @@ Make shared headers and tab bars `position: fixed`, or put them inside the stack
 
 ## Elements on their own layer: `data-stack-animating`
 
-On iOS, an element WebKit draws on its own layer goes blank for a frame when a slide starts ([WebKit bug 310087](https://bugs.webkit.org/show_bug.cgi?id=310087)). Scrollers (`overflow: auto`) and elements with `will-change` or a 3D transform are the common ones; Safari Web Inspector's Layers tab shows them all. The stack sets `data-stack-animating` on the two sliding screens. Under it, stop drawing them on their own layer:
+On iOS, an element WebKit draws on its own layer goes blank for a frame when a slide starts ([WebKit bug 310087](https://bugs.webkit.org/show_bug.cgi?id=310087)). WebKit draws these on their own layer:
+
+| Case                     | CSS / HTML                                                                                                             |
+| ------------------------ | ---------------------------------------------------------------------------------------------------------------------- |
+| 3D transform             | `translate3d()`, `translateZ()`, `rotateX()`, `rotateY()`, `matrix3d()`, `perspective`, `transform-style: preserve-3d` |
+| Hidden back face         | `backface-visibility: hidden`                                                                                          |
+| `will-change`            | `will-change: transform`, `opacity`, `filter`                                                                          |
+| Running animation        | An animation or transition of `transform`, `opacity` or `filter`                                                       |
+| Filter                   | `filter`, `backdrop-filter`                                                                                            |
+| Scroller                 | `overflow: auto`, `overflow: scroll`                                                                                   |
+| Position (in some cases) | `position: fixed`, `position: sticky`, anchor positioning                                                              |
+| Media (in some cases)    | `<video>`, an accelerated `<canvas>`, `<iframe>`                                                                       |
+
+An element that overlaps or contains one of these can be drawn on its own layer too. Safari Web Inspector's Layers tab shows each layer and why.
+
+The stack sets `data-stack-animating` on the two sliding screens. Under it, stop drawing them on their own layer:
 
 ```css
 [data-stack-animating] .carousel {
