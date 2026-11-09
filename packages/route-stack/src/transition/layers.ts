@@ -43,10 +43,10 @@ export const background = (from: HTMLElement) => {
 };
 
 /**
- * On a lifted host, unset at rest, for the app's composited elements (a
- * scroller, a `will-change: transform`): iOS WebKit clips one to the rect shown
- * before the window scroll that lifts the layers, so it paints blank for a
- * frame (WebKit bug 310087); one not composited is painted first.
+ * On a lifted host, for the app's composited elements: iOS WebKit (bug 310087)
+ * commits composited layers against the rect shown before a same-task window
+ * scroll (aim.ts), so one paints blank for a frame or two. Apps turn
+ * compositing off under this attribute.
  */
 const ANIMATING = "data-stack-animating";
 

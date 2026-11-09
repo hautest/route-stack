@@ -51,19 +51,17 @@ CSS에는 다음과 같은 영향이 있습니다.
 
 ## 자기 레이어에 따로 그리는 요소: `data-stack-animating` {#elements-on-their-own-layer-data-stack-animating}
 
-iOS에서는 자기 레이어에 따로 그리는 요소가 전환이 시작될 때 한 프레임 비어 보입니다([WebKit 버그 310087](https://bugs.webkit.org/show_bug.cgi?id=310087)). WebKit은 다음 요소를 자기 레이어에 따로 그립니다.
+iOS에서는 자기 레이어에 따로 그리는 요소(합성 레이어)가 전환이 시작될 때 1~2프레임 비어 보입니다([WebKit 버그 310087](https://bugs.webkit.org/show_bug.cgi?id=310087)). WebKit은 다음 요소를 자기 레이어에 따로 그립니다.
 
 - `translate3d()`, `translateZ()`, `rotateX()`, `rotateY()`, `matrix3d()`
-- `perspective`, `transform-style: preserve-3d`
-- `backface-visibility: hidden`
+- 3D transform과 함께 쓴 `perspective`, `transform-style: preserve-3d`, `backface-visibility: hidden`
 - `will-change: transform`, `will-change: opacity`, `will-change: filter`
 - 실행 중인 `transform`, `opacity`, `filter` 애니메이션이나 transition
 - `filter`, `backdrop-filter`
-- `overflow: auto`, `overflow: scroll`
-- `position: fixed`, `position: sticky`, `position-anchor`(경우에 따라)
+- 내용이 넘치는 `overflow: auto`, `overflow: scroll`
 - `<video>`, `<canvas>`, `<iframe>`(경우에 따라)
 
-이 요소와 겹치거나 이 요소를 감싸는 요소도 따로 그려질 수 있습니다. Safari Web Inspector의 Layers 탭에서 각 레이어와 그 이유를 볼 수 있습니다.
+이 요소 위에 겹쳐 그려지는 요소나, 이 요소를 감싸면서 transform, `opacity`, `filter`가 걸린 부모도 따로 그려질 수 있습니다. Safari Web Inspector의 Layers 탭에서 각 레이어와 그 이유를 볼 수 있습니다.
 
 스택은 움직이는 두 screen에 `data-stack-animating`을 붙입니다. 이 속성 아래에서는 요소를 따로 그리지 않게 하면 됩니다.
 
@@ -73,6 +71,10 @@ iOS에서는 자기 레이어에 따로 그리는 요소가 전환이 시작될 
   will-change: auto;
 }
 ```
+
+`hidden`이어도 `scrollLeft`는 그대로라서 아무것도 움직이지 않습니다.
+
+위 항목을 JavaScript가 인라인 스타일로 걸면 이 방법으로는 대응할 수 없습니다. 화면 안의 요소에는 인라인으로 걸지 마세요.
 
 ## 긴 목록 {#long-lists}
 

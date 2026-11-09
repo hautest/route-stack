@@ -25,7 +25,7 @@ A web app added to the home screen (`display-mode: standalone`) has no Safari sw
 
 ## A carousel or scroller flashes when a slide starts (iOS)
 
-It is drawn on its own layer; Safari Web Inspector's Layers tab shows which elements are. Stop that under `[data-stack-animating]`. See [Scroll & Layers](/guide/scroll-and-layers#elements-on-their-own-layer-data-stack-animating).
+The element is drawn on its own layer; Safari Web Inspector's Layers tab shows which elements are. Turn that off under `[data-stack-animating]`. See [Scroll & Layers](/guide/scroll-and-layers#elements-on-their-own-layer-data-stack-animating).
 
 ## Back starts late on a long page
 

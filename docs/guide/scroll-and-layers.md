@@ -51,21 +51,19 @@ Make shared headers and tab bars `position: fixed`, or put them inside the stack
 
 ## Elements on their own layer: `data-stack-animating`
 
-On iOS, an element WebKit draws on its own layer goes blank for a frame when a slide starts ([WebKit bug 310087](https://bugs.webkit.org/show_bug.cgi?id=310087)). WebKit draws these on their own layer:
+On iOS, an element WebKit draws on its own layer (a composited layer) goes blank for a frame or two when a slide starts ([WebKit bug 310087](https://bugs.webkit.org/show_bug.cgi?id=310087)). WebKit draws these on their own layer:
 
 - `translate3d()`, `translateZ()`, `rotateX()`, `rotateY()`, `matrix3d()`
-- `perspective`, `transform-style: preserve-3d`
-- `backface-visibility: hidden`
+- `perspective`, `transform-style: preserve-3d`, `backface-visibility: hidden`, with a 3D transform
 - `will-change: transform`, `will-change: opacity`, `will-change: filter`
 - A running animation or transition of `transform`, `opacity` or `filter`
 - `filter`, `backdrop-filter`
-- `overflow: auto`, `overflow: scroll`
-- `position: fixed`, `position: sticky`, `position-anchor` (in some cases)
+- `overflow: auto` or `overflow: scroll` whose content overflows
 - `<video>`, `<canvas>`, `<iframe>` (in some cases)
 
-An element that overlaps or contains one of these can be drawn on its own layer too. Safari Web Inspector's Layers tab shows each layer and why.
+An element drawn over one of these, or a parent of one with a transform, `opacity` or `filter`, can be drawn on its own layer too. Safari Web Inspector's Layers tab shows each layer and why.
 
-The stack sets `data-stack-animating` on the two sliding screens. Under it, stop drawing them on their own layer:
+The stack sets `data-stack-animating` on the two sliding screens. Under it, stop drawing those elements on their own layer:
 
 ```css
 [data-stack-animating] .carousel {
@@ -73,6 +71,10 @@ The stack sets `data-stack-animating` on the two sliding screens. Under it, stop
   will-change: auto;
 }
 ```
+
+A scroller set to `hidden` keeps its `scrollLeft`: nothing moves.
+
+Any of these set from JavaScript as an inline style cannot be turned off this way. Do not set them inline on elements inside a screen.
 
 ## Long lists
 
