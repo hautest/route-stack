@@ -51,40 +51,18 @@ Make shared headers and tab bars `position: fixed`, or put them inside the stack
 
 ## Composited elements: `data-stack-animating`
 
-On iOS, WebKit paints a composited element blank for a frame or two when a slide starts. The stack scrolls the window as it lifts the layers, and until WebKit catches up it draws composited elements against the area shown before the scroll ([WebKit bug 310087](https://bugs.webkit.org/show_bug.cgi?id=310087)). Content that is not composited is painted first and does not flash. What flashes:
-
-- a scroller (`overflow: auto`), which iOS composites
-- an element composited at rest: `will-change: transform`, `translateZ(0)`, a `translate3d()`, or a carousel that positions its track with one
-
-The part outside the area shown before the scroll goes blank, so the farther apart the two screens are scrolled, the more of it flashes.
-
-The stack sets `data-stack-animating` on the two lifted screens during a slide. Turn compositing off under it:
+On iOS, a composited element goes blank for a frame when a slide starts ([WebKit bug 310087](https://bugs.webkit.org/show_bug.cgi?id=310087)): a scroller (`overflow: auto`), or an element with `will-change: transform`, `translateZ(0)` or `translate3d()`. The stack sets `data-stack-animating` on the two sliding screens. Turn compositing off under it:
 
 ```css
-.carousel {
-  overflow-x: auto;
-}
-.banner {
-  will-change: transform;
-}
-
 [data-stack-animating] .carousel {
   overflow-x: hidden;
-}
-[data-stack-animating] .banner {
   will-change: auto;
 }
 ```
 
-- At rest the attribute is absent, and the elements keep their scrolling and compositing.
-- A scroller set to `hidden` keeps its `scrollLeft`: nothing moves.
-- A position given by `translate3d()` is restated in 2D, not removed: `transform: translate(-100%, 0)`, not `none`.
-- A library that positions its track with an inline `translate3d()` (Embla Carousel does, at rest too) needs a patch to write `translate()`: the value changes with the position, so CSS cannot restate it.
-- `<video>`, a `<canvas>` (WebGL, or a large 2D one) and an `<iframe>` whose content is composited can flash whatever their CSS.
-- Android and desktop browsers are not affected.
-- It costs nothing at rest: the attribute is set once when a slide starts and removed when it ends, on the two screens only.
-
-`--route-stack-overflow` (deprecated) is still set to `hidden` on the same screens, so `overflow-x: var(--route-stack-overflow, auto)` keeps working. It will be removed in 1.0.
+- Restate a position given by `translate3d()` in 2D (`translate(-100%, 0)`) instead of removing it.
+- An inline `translate3d()` (Embla Carousel) cannot be restated from CSS: patch it to write `translate()`.
+- `--route-stack-overflow` still works, but is deprecated and will be removed in 1.0.
 
 ## Long lists
 

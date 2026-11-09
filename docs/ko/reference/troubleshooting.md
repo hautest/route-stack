@@ -25,16 +25,7 @@ iOS의 Chrome과 Firefox도 이 조건에 걸립니다. 두 브라우저에도 �
 
 ## 슬라이드가 시작될 때 캐러셀이나 스크롤 요소가 깜빡임 (iOS) {#a-carousel-or-scroller-flashes-when-a-slide-starts-ios}
 
-screen이 움직이기 시작할 때 캐러셀, 가로 스크롤 요소, 배너 같은 큰 요소가 한 프레임 비어 보입니다. 두 screen의 스크롤 위치가 멀수록 더 심합니다. 이 요소가 합성되어 있기 때문입니다. 스크롤 요소(`overflow: auto`)나 `will-change: transform`, `translateZ(0)`, `translate3d()`가 걸린 요소가 해당합니다. 전환하는 동안에는 합성을 끄면 됩니다.
-
-```css
-[data-stack-animating] .carousel {
-  overflow-x: hidden;
-  will-change: auto;
-}
-```
-
-라이브러리가 인라인으로 `translate3d()`를 쓴다면(Embla Carousel이 그렇습니다) `translate()`를 쓰도록 패치합니다. 자세한 내용은 [스크롤과 레이어](/ko/guide/scroll-and-layers#composited-elements-data-stack-animating)에 있습니다.
+요소가 합성되어 있기 때문입니다(`overflow: auto`, `will-change: transform`, `translate3d()`). `[data-stack-animating]` 아래에서 합성을 끄면 됩니다. 자세한 내용은 [스크롤과 레이어](/ko/guide/scroll-and-layers#composited-elements-data-stack-animating)에 있습니다.
 
 ## 긴 페이지에서 back이 늦게 시작함 {#back-starts-late-on-a-long-page}
 

@@ -25,16 +25,7 @@ A web app added to the home screen (`display-mode: standalone`) has no Safari sw
 
 ## A carousel or scroller flashes when a slide starts (iOS)
 
-A carousel, a horizontal scroller, a banner or another large element goes blank for a frame when screens start to slide, more so when the two screens are scrolled far apart. It is composited: a scroller (`overflow: auto`), or an element with `will-change: transform`, `translateZ(0)` or `translate3d()`. Turn that off during a slide:
-
-```css
-[data-stack-animating] .carousel {
-  overflow-x: hidden;
-  will-change: auto;
-}
-```
-
-If a library sets `translate3d()` inline (Embla Carousel does), patch it to write `translate()`. See [Scroll & Layers](/guide/scroll-and-layers#composited-elements-data-stack-animating).
+It is composited (`overflow: auto`, `will-change: transform`, `translate3d()`). Turn that off under `[data-stack-animating]`. See [Scroll & Layers](/guide/scroll-and-layers#composited-elements-data-stack-animating).
 
 ## Back starts late on a long page
 

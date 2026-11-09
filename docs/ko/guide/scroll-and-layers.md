@@ -51,40 +51,18 @@ CSS에는 다음과 같은 영향이 있습니다.
 
 ## 합성되는 요소: `data-stack-animating` {#composited-elements-data-stack-animating}
 
-iOS WebKit은 전환이 시작될 때 합성되는 요소를 1~2프레임 동안 빈 채로 그립니다. 스택은 레이어를 띄우면서 window를 스크롤하는데, WebKit은 잠깐 스크롤 전에 보이던 영역을 기준으로 합성되는 요소를 그립니다([WebKit 버그 310087](https://bugs.webkit.org/show_bug.cgi?id=310087)). 합성되지 않는 내용은 먼저 그려 두므로 깜빡이지 않습니다. 깜빡이는 것은 아래 두 가지입니다.
-
-- 스크롤 요소(`overflow: auto`). iOS는 이것을 합성합니다.
-- 쉬는 동안에도 합성되는 요소. `will-change: transform`, `translateZ(0)`, `translate3d()`가 걸린 요소나, 이것으로 위치를 정하는 캐러셀이 해당합니다.
-
-스크롤 전에 보이던 영역 밖의 부분이 비므로 두 screen의 스크롤 위치가 멀수록 더 많이 깜빡입니다.
-
-스택은 전환하는 동안 띄운 두 screen에 `data-stack-animating`을 설정합니다. 이 속성 아래에서 합성을 끄면 됩니다.
+iOS에서는 전환이 시작될 때 합성되는 요소가 한 프레임 비어 보입니다([WebKit 버그 310087](https://bugs.webkit.org/show_bug.cgi?id=310087)). 스크롤 요소(`overflow: auto`)나 `will-change: transform`, `translateZ(0)`, `translate3d()`가 걸린 요소가 해당합니다. 스택은 움직이는 두 screen에 `data-stack-animating`을 붙입니다. 이 속성 아래에서 합성을 끄면 됩니다.
 
 ```css
-.carousel {
-  overflow-x: auto;
-}
-.banner {
-  will-change: transform;
-}
-
 [data-stack-animating] .carousel {
   overflow-x: hidden;
-}
-[data-stack-animating] .banner {
   will-change: auto;
 }
 ```
 
-- 평소에는 속성이 없으므로 요소는 원래대로 스크롤되고 합성됩니다.
-- `hidden`이어도 `scrollLeft`는 그대로라서 아무것도 움직이지 않습니다.
-- `translate3d()`로 정한 위치는 지우지 말고 2D로 바꿔 씁니다. `none`이 아니라 `transform: translate(-100%, 0)`처럼 씁니다.
-- 인라인 `translate3d()`로 위치를 정하는 라이브러리(Embla Carousel은 쉬는 동안에도 씁니다)는 `translate()`를 쓰도록 패치해야 합니다. 값이 위치에 따라 바뀌므로 CSS로 다시 쓸 수 없습니다.
-- `<video>`, `<canvas>`(WebGL이나 큰 2D canvas), 내용이 합성되는 `<iframe>`은 CSS와 상관없이 깜빡일 수 있습니다.
-- 안드로이드와 데스크톱 브라우저는 해당되지 않습니다.
-- 평소에는 비용이 없습니다. 속성은 전환이 시작될 때 한 번 설정되고 끝날 때 제거되며 두 screen에만 적용됩니다.
-
-`--route-stack-overflow`(deprecated)도 같은 screen에 계속 `hidden`으로 설정되므로 `overflow-x: var(--route-stack-overflow, auto)`는 그대로 동작합니다. 1.0에서 제거됩니다.
+- `translate3d()`로 정한 위치는 지우지 말고 2D(`translate(-100%, 0)`)로 바꿔 씁니다.
+- 인라인 `translate3d()`(Embla Carousel)는 CSS로 바꿀 수 없으니 `translate()`를 쓰도록 패치합니다.
+- `--route-stack-overflow`는 아직 동작하지만 deprecated이며 1.0에서 제거됩니다.
 
 ## 긴 목록 {#long-lists}
 
