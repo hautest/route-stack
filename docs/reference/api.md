@@ -111,15 +111,16 @@ interface AdapterProps {
 | Variable                 | Set on                 | When                                                                             |
 | ------------------------ | ---------------------- | -------------------------------------------------------------------------------- |
 | `--route-stack-progress` | `<html>`               | During a slide, with `enableProgressCssVar`. `0` to `1`                          |
-| `--route-stack-overflow` | The two lifted screens | During a slide: `hidden`. Use as `overflow-x: var(--route-stack-overflow, auto)` |
+| `--route-stack-overflow` | The two lifted screens | Deprecated, removed in 1.0: use `data-stack-animating`. During a slide: `hidden` |
 
 ## Data attributes
 
-| Attribute            | Element                                    |
-| -------------------- | ------------------------------------------ |
-| `data-stack-root`    | The stack root                             |
-| `data-stack-screen`  | Each screen host (the layer a slide moves) |
-| `data-stack-content` | Each screen's content (what React hides)   |
+| Attribute              | Element                                                                                                                      |
+| ---------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `data-stack-root`      | The stack root                                                                                                               |
+| `data-stack-screen`    | Each screen host (the layer a slide moves)                                                                                   |
+| `data-stack-content`   | Each screen's content (what React hides)                                                                                     |
+| `data-stack-animating` | The two lifted screens, during a slide. [Scroll & Layers](/guide/scroll-and-layers#composited-elements-data-stack-animating) |
 
 Set by the app:
 

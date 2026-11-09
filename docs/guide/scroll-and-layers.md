@@ -49,21 +49,42 @@ Make shared headers and tab bars `position: fixed`, or put them inside the stack
 - Keep `transform` and similar properties off the ancestors of `<Stack>`: the layers would be placed relative to that element, not the viewport. For the list of properties, see [Troubleshooting](/reference/troubleshooting#screens-slide-to-the-wrong-place-or-vanish).
 - Portals (modals, toasts) render outside the stack and stay put. Closing them on navigation is the app's job.
 
-## Horizontal scrollers: `--route-stack-overflow`
+## Composited elements: `data-stack-animating`
 
-On iOS, WebKit paints a scrolling element inside a lifted layer blank for one frame whenever the window scrolls behind the layers. The stack scrolls the window behind the layers during every slide, so carousels and other scrollers can flash.
+On iOS, WebKit paints a composited element blank for a frame or two when a slide starts. The stack scrolls the window as it lifts the layers, and until WebKit catches up it draws composited elements against the area shown before the scroll ([WebKit bug 310087](https://bugs.webkit.org/show_bug.cgi?id=310087)). Content that is not composited is painted first and does not flash. What flashes:
 
-The fix is one CSS variable. The stack sets `--route-stack-overflow: hidden` on the two lifted screens during a slide, and nowhere else. Use it for the overflow of your scrollers:
+- a scroller (`overflow: auto`), which iOS composites
+- an element composited at rest: `will-change: transform`, `translateZ(0)`, a `translate3d()`, or a carousel that positions its track with one
+
+The part outside the area shown before the scroll goes blank, so the farther apart the two screens are scrolled, the more of it flashes.
+
+The stack sets `data-stack-animating` on the two lifted screens during a slide. Turn compositing off under it:
 
 ```css
 .carousel {
-  overflow-x: var(--route-stack-overflow, auto);
+  overflow-x: auto;
+}
+.banner {
+  will-change: transform;
+}
+
+[data-stack-animating] .carousel {
+  overflow-x: hidden;
+}
+[data-stack-animating] .banner {
+  will-change: auto;
 }
 ```
 
-- At rest the variable is unset and the fallback (`auto`) applies.
-- During a slide the element is not scrollable, so it is painted with its layer. `hidden` keeps `scrollLeft`: nothing moves.
-- It costs nothing: the variable is set once when a slide starts and removed when it ends, on the two screens only.
+- At rest the attribute is absent, and the elements keep their scrolling and compositing.
+- A scroller set to `hidden` keeps its `scrollLeft`: nothing moves.
+- A position given by `translate3d()` is restated in 2D, not removed: `transform: translate(-100%, 0)`, not `none`.
+- A library that positions its track with an inline `translate3d()` (Embla Carousel does, at rest too) needs a patch to write `translate()`: the value changes with the position, so CSS cannot restate it.
+- `<video>`, a `<canvas>` (WebGL, or a large 2D one) and an `<iframe>` whose content is composited can flash whatever their CSS.
+- Android and desktop browsers are not affected.
+- It costs nothing at rest: the attribute is set once when a slide starts and removed when it ends, on the two screens only.
+
+`--route-stack-overflow` (deprecated) is still set to `hidden` on the same screens, so `overflow-x: var(--route-stack-overflow, auto)` keeps working. It will be removed in 1.0.
 
 ## Long lists
 

@@ -43,11 +43,14 @@ export const background = (from: HTMLElement) => {
 };
 
 /**
- * Set to `hidden` on a lifted host, unset at rest, for the app's scrolling
- * elements: `overflow-x: var(--route-stack-overflow, auto)`. iOS WebKit paints
- * a composited scroller inside a lifted layer blank for a frame whenever the
- * window scrolls behind it; one not scrollable is painted with the layer.
+ * On a lifted host, unset at rest, for the app's composited elements (a
+ * scroller, a `will-change: transform`): iOS WebKit clips one to the rect shown
+ * before the window scroll that lifts the layers, so it paints blank for a
+ * frame (WebKit bug 310087); one not composited is painted first. The variable
+ * is the attribute's deprecated form: `overflow-x: var(--route-stack-overflow,
+ * auto)`.
  */
+const ANIMATING = "data-stack-animating";
 const OVERFLOW = "--route-stack-overflow";
 
 // The slide that last lifted each host: a drop deferred a frame leaves a host
@@ -132,6 +135,7 @@ export function layersOf(
       background: bg,
     });
     host.style.setProperty(OVERFLOW, "hidden");
+    host.setAttribute(ANIMATING, "");
     place(layer, offset);
     if (inert) host.inert = true;
     else allowFocus(host);
@@ -155,6 +159,7 @@ export function layersOf(
       OVERFLOW,
     ])
       host.style.removeProperty(property);
+    host.removeAttribute(ANIMATING);
 
     const content = contentOf(host);
     content.style.removeProperty("margin-top");

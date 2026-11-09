@@ -42,20 +42,33 @@ describe("slide", () => {
     expect(control.progress).toBe(1);
   });
 
-  test("tells the app's scrollers not to scroll while lifted, and no more after", async () => {
+  test("marks the lifted screens for the app's composited elements, and no more after", async () => {
     const pair = screens();
     root = pair.root;
-    const overflow = (host: HTMLElement) =>
+    const style = document.createElement("style");
+    style.textContent =
+      ".carousel { will-change: transform } [data-stack-animating] .carousel { will-change: auto }";
+    document.head.append(style);
+    for (const { host } of [pair.enter, pair.leave])
+      host.firstElementChild!.classList.add("carousel");
+    const marks = ({ host }: Layer) => [
+      host.hasAttribute("data-stack-animating"),
+      getComputedStyle(host.firstElementChild!).willChange,
       getComputedStyle(host.firstElementChild!).getPropertyValue(
         "--route-stack-overflow",
-      );
-    const control = slide(pair.enter, pair.leave, fast, false);
-    expect(overflow(pair.enter.host)).toBe("hidden");
-    expect(overflow(pair.leave.host)).toBe("hidden");
-    await control.play(true);
-    control.end(pair.enter, true);
-    expect(overflow(pair.enter.host)).toBe("");
-    expect(overflow(pair.leave.host)).toBe("");
+      ),
+    ];
+    try {
+      const control = slide(pair.enter, pair.leave, fast, false);
+      expect(marks(pair.enter)).toEqual([true, "auto", "hidden"]);
+      expect(marks(pair.leave)).toEqual([true, "auto", "hidden"]);
+      await control.play(true);
+      control.end(pair.enter, true);
+      expect(marks(pair.enter)).toEqual([false, "transform", ""]);
+      expect(marks(pair.leave)).toEqual([false, "transform", ""]);
+    } finally {
+      style.remove();
+    }
   });
 
   test("a drop put off a frame is pending until that frame", async () => {
