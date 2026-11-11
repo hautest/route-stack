@@ -821,23 +821,24 @@ test.describe("7. query", () => {
   });
 });
 
-test("8. #comments on the same URL is the same screen (no slide)", async ({
+test("8. scrolling to the comments adds no history entry and no slide", async ({
   page,
 }) => {
   await page.goto("/items/1");
   await page.locator("#comments").waitFor();
   await page.waitForLoadState("networkidle");
   const id = await shownId(page);
+  const length = await page.evaluate(() => history.length);
 
-  const hashMark = await mark(page);
-  await page.getByRole("link", { name: "댓글 보기 ↓" }).click();
-  await page.waitForURL((url) => url.hash === "#comments");
+  const scrollMark = await mark(page);
+  await page.getByRole("button", { name: "댓글 보기 ↓" }).click();
   await nextFrames(page, 5);
 
   expect(await shownId(page)).toBe(id);
-  expect(events(await logSince(page, hashMark), "commit")).toEqual([]);
+  expect(await page.evaluate(() => history.length)).toBe(length);
+  expect(events(await logSince(page, scrollMark), "commit")).toEqual([]);
   expect(
-    (await framesSince(page, hashMark)).some((frame) => frame.lifted > 0),
+    (await framesSince(page, scrollMark)).some((frame) => frame.lifted > 0),
   ).toBe(false);
   expect(await page.evaluate(() => scrollY)).toBeGreaterThan(0);
 });

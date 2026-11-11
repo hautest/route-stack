@@ -22,7 +22,6 @@ const ROUTES = [
   "/search/results?q=리액트",
   "/items/1",
   "/items/1?tab=info",
-  "/items/1#comments",
   "/items/1/edit",
   "/products?id=1",
   "/login",
@@ -38,7 +37,6 @@ const PLAIN_ROUTES = [
   "/search/results?q=리액트",
   "/items/1",
   "/items/1?tab=info",
-  "/items/1#comments",
   "/products?id=1",
   "/lab",
 ];
@@ -287,15 +285,14 @@ for (const name of names) {
     await page.getByText("상품 1").filter({ visible: true }).first().waitFor();
   });
 
-  await check("/items hash links + tab push", async () => {
+  await check("/items comments scroll + tab push", async () => {
     await goto("/items/1");
     const before = await historyLength();
     await page
-      .getByRole("link", { name: "댓글 보기 ↓" })
+      .getByRole("button", { name: "댓글 보기 ↓" })
       .filter({ visible: true })
       .click();
-    await waitPath((current) => current === "/items/1");
-    expect(new URL(page.url()).hash === "#comments", "hash not set");
+    expect((await historyLength()) === before, "scroll added an entry");
     expect(
       (await page.evaluate(() => scrollY)) > 0,
       "did not scroll to comments",
@@ -305,7 +302,7 @@ for (const name of names) {
       .filter({ visible: true })
       .click();
     await waitPath((current) => current === "/items/1?tab=info");
-    expect((await historyLength()) === before + 2, "hash/tab did not push");
+    expect((await historyLength()) === before + 1, "tab did not push");
   });
 
   if (!app.plain) {

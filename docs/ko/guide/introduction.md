@@ -20,7 +20,7 @@ route-stack은 웹에서도 네이티브 앱 같은 내비게이션을 만들어
 route-stack은 screen을 캡처하지 않고 screen 자체를 보관합니다.
 
 - **screen이 살아 있습니다.** 떠난 screen은 React의 `<Activity>`로 숨긴 채 DOM에 남겨 둡니다. 상태, 입력값, 스크롤이 그대로 유지되고, effect는 screen이 다시 보일 때까지 멈춥니다.
-- **살아 있는 두 screen이 움직입니다.** push, back, 스와이프 모두 두 screen을 화면 크기의 레이어로 띄우고 Web Animations API로 애니메이션합니다. `transform`과 `opacity`만 쓰며, 애니메이션은 합성 스레드에서 실행됩니다.
+- **살아 있는 두 screen이 움직입니다.** push, back, 스와이프 모두 두 screen을 고정된 레이어로 띄우고 Web Animations API로 애니메이션합니다. `transform`과 `opacity`만 쓰며, 애니메이션은 합성 스레드에서 실행됩니다.
 - **history가 결정합니다.** 각 항목이 어떤 screen을 보여 줄지, 이동이 push인지 back인지 replace인지는 라우터가 아니라 브라우저 history로 판단합니다. 그래서 어떤 라우터를 쓰든 똑같이 동작합니다.
 - **라우터는 그대로입니다.** 라우트, loader, 링크를 지금처럼 씁니다. 어댑터는 라우터가 렌더한 경로를 스택에 알려 주는 일만 합니다.
 

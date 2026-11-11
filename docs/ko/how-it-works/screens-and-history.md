@@ -4,11 +4,11 @@
 
 history 항목이 현재 항목이 되는 순간, 그 항목이 어떤 screen인지 history만 보고 정합니다.
 
-| 이동                    | 같은 screen인 경우                                 | 그 외            |
-| ----------------------- | -------------------------------------------------- | ---------------- |
-| push                    | `#`을 뺀 URL이 같음 (`/page` → `/page#section`)    | 새 screen        |
-| replace                 | pathname이 같음 (`/search?q=a` → `/search?q=ab`)   | 새 screen        |
-| traverse (뒤로, 앞으로) | 전에 본 항목 → 그 항목의 screen                    | push와 같은 기준 |
+| 이동                    | 같은 screen인 경우                               | 그 외            |
+| ----------------------- | ------------------------------------------------ | ---------------- |
+| push                    | `#`을 뺀 URL이 같음 (`/page` → `/page#section`)  | 새 screen        |
+| replace                 | pathname이 같음 (`/search?q=a` → `/search?q=ab`) | 새 screen        |
+| traverse (뒤로, 앞으로) | 전에 본 항목 → 그 항목의 screen                  | push와 같은 기준 |
 
 이것이 기본 규칙인 `defaultSameScreen`입니다. 예를 들면 다음과 같습니다.
 
@@ -39,12 +39,12 @@ traverse 자체에는 방향이 없습니다. 그래서 스택은 두 screen이 
 
 보관하는 screen 수에는 제한이 없습니다.
 
-## Navigation API와 polyfill {#navigation-api-and-the-fallback}
+## history 항목을 구분하는 방법 {#how-entries-are-told-apart}
 
-Navigation API를 쓸 수 있으면 스택은 항목 정보를 Navigation API에서 읽습니다. 쓸 수 없는 환경(Safari 26.2 미만)에서는 `history.state`에 key와 index를 저장합니다.
+스택은 모든 브라우저에서 같은 방식으로 history 항목마다 key와 index를 `history.state`에 저장합니다. Navigation API는 읽지 않습니다. Safari 26.2 미만에는 Navigation API가 없고, Safari 개인정보 보호 창에서는 Navigation API가 `pushState`로 바뀐 history를 반영하지 못하기 때문입니다.
 
 - 라우터가 쓰는 state에 합쳐 넣으므로 라우터의 필드는 그대로 유지됩니다.
-- route-stack이 로드되기 전에 생긴 항목과 `#anchor` 링크로 생긴 항목은 URL로 기억합니다.
+- route-stack이 로드되기 전에 생긴 항목은 URL로 기억합니다. `#anchor` 링크로 생긴 항목도 같은 방식으로 기억하지만 스택이 지원하지 않는 사용법입니다. [제약 사항](/ko/reference/limitations#routers)을 참고하세요.
 - route-stack은 첫 이동 전에 앱과 함께 로드해야 합니다. 그 전에 생긴 항목은 index가 같아서 순서를 알 수 없습니다.
 
 ## Next.js의 순서 {#next-js-order}

@@ -1,6 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { entries, type Entries, type NavigationEvent } from "./index";
-import { polyfill } from "./polyfill/index";
+import { entries, type Entries } from "./index";
 import { createScreenMap } from "./screens";
 
 const trackScreens = (tracked: Entries) => {
@@ -20,11 +19,11 @@ const traverse = async (go: () => void) => {
 // Which screen an entry shows is decided by history alone, the moment the entry
 // becomes current, so the stack never depends on when (or whether) a router
 // renders.
-function scenario(get: () => Entries, base: string) {
-  const at = (path: string) => `${base}${path}`;
+function scenario() {
+  const at = (path: string) => `/own${path}`;
 
   test("a push to another query is a new screen, a #fragment or a replace keeps it", async () => {
-    const tracked = get();
+    const tracked = entries;
     history.pushState(null, "", at("/a"));
     const s = trackScreens(tracked);
     const a = s.screenOf(tracked.current().key);
@@ -53,7 +52,7 @@ function scenario(get: () => Entries, base: string) {
   });
 
   test("a replace to another pathname is a new screen", () => {
-    const tracked = get();
+    const tracked = entries;
     history.pushState(null, "", at("/a"));
     const s = trackScreens(tracked);
     const a = s.screenOf(tracked.current().key);
@@ -64,7 +63,7 @@ function scenario(get: () => Entries, base: string) {
   // What the swipe relies on: the screen it shows behind is the one the back
   // lands on.
   test("the back screen is the screen of the entry a back lands on", async () => {
-    const tracked = get();
+    const tracked = entries;
     history.pushState(null, "", at("/a"));
     const s = trackScreens(tracked);
     const a = s.screenOf(tracked.current().key);
@@ -87,15 +86,31 @@ function scenario(get: () => Entries, base: string) {
     expect(s.backScreen()).toBe(q);
   });
 
+  // The entry a #fragment added carries no stamp and shares its page's
+  // index: which of the two a back lands on is not known, so no screen is
+  // offered to a swipe (rather than a wrong one).
+  test("the back screen of a page whose #fragment was visited is unknown", async () => {
+    const tracked = entries;
+    history.pushState(null, "", at("/list"));
+    const s = trackScreens(tracked);
+    history.pushState(null, "", at("/post"));
+    await traverse(() => {
+      location.hash = "#comments";
+    });
+    await traverse(() => history.back());
+    expect(location.hash).toBe("");
+    expect(s.backScreen()).toBeNull();
+  });
+
   test("the back screen is unknown for an entry not seen since this module loaded", () => {
-    const tracked = get();
+    const tracked = entries;
     history.pushState(null, "", at("/unseen"));
     const s = trackScreens(tracked);
     expect(s.backScreen()).toBeNull();
   });
 
   test("another pathname is a new screen, even one shown before", () => {
-    const tracked = get();
+    const tracked = entries;
     history.pushState(null, "", at("/a"));
     const s = trackScreens(tracked);
     const a = s.screenOf(tracked.current().key);
@@ -110,7 +125,7 @@ function scenario(get: () => Entries, base: string) {
   });
 
   test("going back shows the screen the entry showed before", async () => {
-    const tracked = get();
+    const tracked = entries;
     history.pushState(null, "", at("/a"));
     const s = trackScreens(tracked);
     const a = s.screenOf(tracked.current().key);
@@ -125,7 +140,7 @@ function scenario(get: () => Entries, base: string) {
   });
 
   test("a replace to another pathname is a new screen, and the old one is not kept", () => {
-    const tracked = get();
+    const tracked = entries;
     history.pushState(null, "", at("/a"));
     const s = trackScreens(tracked);
     history.pushState(null, "", at("/login"));
@@ -139,7 +154,7 @@ function scenario(get: () => Entries, base: string) {
   });
 
   test("a screen is kept while an entry at or behind the current one shows it", async () => {
-    const tracked = get();
+    const tracked = entries;
     history.pushState(null, "", at("/a"));
     const s = trackScreens(tracked);
     const a = s.screenOf(tracked.current().key)!;
@@ -159,44 +174,4 @@ function scenario(get: () => Entries, base: string) {
   });
 }
 
-// WebKit's Navigation API gives a replaced entry a new key (the spec keeps it);
-// Next replaces the entry it restores on back. The event's `from` tells which
-// entry the new key took the place of.
-test("an entry replaced under a new key keeps its screen and the back screen behind it", () => {
-  const live = new Map([["a", 0]]);
-  const entry = (key: string, index: number, path: string) => ({
-    key,
-    index,
-    url: `${location.origin}/fake${path}`,
-  });
-  let current = entry("a", 0, "/a");
-  const s = createScreenMap({
-    current: () => current,
-    indexOf: (key) => live.get(key) ?? null,
-  });
-  const go = (type: NavigationEvent["type"], to: typeof current) => {
-    if (type === "replace") live.delete(current.key);
-    live.set(to.key, to.index);
-    const from = current;
-    current = to;
-    s.apply({ type, from, to });
-  };
-
-  go("push", entry("b", 1, "/b"));
-  go("replace", entry("b-replaced", 1, "/b?sort=new"));
-  expect(s.screenOf("b-replaced")).toBe(s.screenOf("b"));
-  expect(s.backScreen()).toBe(s.screenOf("a"));
-  expect(s.direction(s.screenOf("a"), s.screenOf("b-replaced"))).toBe("push");
-});
-
-describe.runIf("navigation" in window)("Navigation API", () =>
-  scenario(() => entries, "/nav"),
-);
-
-describe("polyfill", () => {
-  let installed: Entries | undefined;
-  scenario(
-    () => (installed ??= window.navigation ? polyfill() : entries),
-    "/poly",
-  );
-});
+describe("entries", scenario);

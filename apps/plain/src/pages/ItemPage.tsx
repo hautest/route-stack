@@ -109,8 +109,14 @@ function ItemView({ item, tab }: { item: ItemDetail; tab: "body" | "info" }) {
         )}
         <p className="muted">조회수 {views ?? "-"}</p>
         <div className="row">
-          <a href="#comments">댓글 보기 ↓</a>
-          <Link href="#comments">댓글로 이동</Link>
+          <button
+            type="button"
+            onClick={() =>
+              document.getElementById("comments")?.scrollIntoView()
+            }
+          >
+            댓글 보기 ↓
+          </button>
         </div>
         <h3>관련 글</h3>
         <ul>

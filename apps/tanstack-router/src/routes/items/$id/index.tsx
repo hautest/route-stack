@@ -72,10 +72,14 @@ function ItemDetailPage() {
         )}
         <p className="muted">조회수 {views ?? "-"}</p>
         <div className="row">
-          <a href="#comments">댓글 보기 ↓</a>
-          <Link to="/items/$id" params={{ id }} search hash="comments">
-            댓글로 이동
-          </Link>
+          <button
+            type="button"
+            onClick={() =>
+              document.getElementById("comments")?.scrollIntoView()
+            }
+          >
+            댓글 보기 ↓
+          </button>
           <Link to="/items/$id/edit" params={{ id }}>
             수정
           </Link>

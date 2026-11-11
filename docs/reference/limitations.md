@@ -17,7 +17,7 @@
 ## Routers
 
 - **One linear browser history.** No per-tab stacks or stacks inside modals.
-- **No swipe back on an entry a `#` anchor added.** Tapping `<a href="#comments">` only scrolls within the same screen, and history gets one more entry. From there the entry right behind is the same screen, so no swipe opens; after going back with a back button, the swipe works again. In iOS Safari before 26.2, the swipe also stays off on a page after visiting one of its anchors. To keep anchor jumps out of history, use `element.scrollIntoView()`.
+- **No `#` anchor navigation.** Tapping `<a href="#comments">` or setting `location.hash` adds a history entry, and `location.replace("#comments")` rewrites the current one; the stack cannot tell either apart from other entries at the same URL. This is not supported: what a back or a swipe shows after one is not guaranteed (the swipe may stay off, and visiting the same anchor again may bring back an older screen). In development, a console warning says so once. Scroll with `element.scrollIntoView()` instead, which adds no entry. Links your router handles with `pushState` are not affected.
 - **Router View Transitions must be off**: React Router `viewTransition`, TanStack `defaultViewTransition`. `document.startViewTransition` would capture the layers mid-slide.
 - **Next.js intercepting and parallel routes** (`@modal`) are not supported. Opening a photo from a feed as a modal changes the pathname, so the stack renders the whole layout — feed and modal — again as a new screen and pushes it. Supporting it would need the adapter to tell a modal slot apart from a page, which Next does not expose. Open such modals with component state, or with a navigation that stays on the screen instead. A `?photo=` replace, for example, stays on it by default (see [`sameScreen`](/how-it-works/screens-and-history#what-is-a-new-screen)).
 - **Routers with a stack of their own** (Ionic `IonRouterOutlet`, React Navigation on the web) or page transitions that hold the old page (Framer Motion `AnimatePresence`) do the same job and conflict.
@@ -32,6 +32,7 @@
 ## Browsers
 
 - **iOS Safari (the browser, not a WebView) runs its own edge swipe alongside the stack's**: see [Troubleshooting](./troubleshooting#ios-safari-two-swipes).
+- **iOS 26 Safari leaves the area behind its bars empty during a slide.** Safari draws the page behind its translucent bars, but not `position: fixed` elements, which the sliding screens are. The area shows the page background while a slide lasts and the screen's content once it ends. A WebView has no such bars and is not affected.
 - **Kept screens live in memory**, so a reload starts fresh.
 - **The first screen after a reload or deep link has no screen behind it.** No swipe; the back button works.
 - **A JS gesture without a declaration moves with the swipe.** A carousel or drawer moved with `transform` needs `touch-action: pan-y` or `data-stack-no-swipe`: see [Swipe Back](/guide/swipe-back#js-gestures).

@@ -68,6 +68,9 @@ export function listenSwipe(begin: () => Drag | null): Swipe {
     /** Inside a shadow root, the element touched (the target is its host). */
     touched: EventTarget;
     edge: boolean;
+    /** The screen's right edge and width: the stack may be beside a sidebar. */
+    right: number;
+    width: number;
     drag: Drag | null;
   } | null = null;
 
@@ -85,7 +88,7 @@ export function listenSwipe(begin: () => Drag | null): Swipe {
 
   // The screen follows the finger 1:1.
   const progressAt = (x: number) =>
-    Math.min(1, Math.max(0, (x - (finger?.x0 ?? x)) / innerWidth));
+    Math.min(1, Math.max(0, (x - (finger?.x0 ?? x)) / (finger?.width || 1)));
   const find = (event: TouchEvent) =>
     finger &&
     [...event.changedTouches].find((point) => point.identifier === finger?.id);
@@ -120,14 +123,11 @@ export function listenSwipe(begin: () => Drag | null): Swipe {
     const target = event.target;
     if (!area || !touch || !target || event.touches.length > 1) return;
 
-    const edge = touch.clientX <= EDGE;
     // On the shown screen only: a sheet portaled out of it keeps its drags.
-    if (
-      (!edge && !area.fullScreen) ||
-      !(target instanceof Node) ||
-      !area.host.contains(target)
-    )
-      return;
+    if (!(target instanceof Node) || !area.host.contains(target)) return;
+    const box = area.host.getBoundingClientRect();
+    const edge = touch.clientX - box.left <= EDGE;
+    if (!edge && !area.fullScreen) return;
 
     finger = {
       id: touch.identifier,
@@ -139,6 +139,8 @@ export function listenSwipe(begin: () => Drag | null): Swipe {
       target,
       touched: event.composedPath()[0] ?? target,
       edge,
+      right: box.right,
+      width: box.width,
       drag: null,
     };
     hold(target, true);
@@ -188,7 +190,7 @@ export function listenSwipe(begin: () => Drag | null): Swipe {
       ([, at]) => event.timeStamp - at <= SPEED_WINDOW_MS,
     ) ?? [touch.clientX, event.timeStamp];
     const speed = (touch.clientX - x1) / (event.timeStamp - time1 || 1);
-    const room = Math.max(1, innerWidth - finger.x0);
+    const room = Math.max(1, finger.right - finger.x0);
 
     release(
       speed > -BACK_SPEED &&

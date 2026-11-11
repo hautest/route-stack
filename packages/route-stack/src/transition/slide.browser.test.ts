@@ -2,7 +2,7 @@ import { afterEach, describe, expect, test, vi } from "vitest";
 import { slideAt } from "../test/browser";
 import { background } from "./layers";
 import { slide, type Layer } from "./slide";
-import { android, ios, material } from "./transitions";
+import { android, ios, material, still } from "./transitions";
 
 const fast = { ...ios, duration: 80 };
 
@@ -283,4 +283,11 @@ describe("slide", () => {
       [1, 0],
     ]);
   });
+});
+
+// Nothing moves in it: taps and scroll are held for frames, not for the
+// transition's length.
+test("the slide for a back the browser drew lasts a few frames at most", () => {
+  expect(still(ios).duration).toBeLessThanOrEqual(50);
+  expect(still({ ...ios, duration: 20 }).duration).toBe(20);
 });

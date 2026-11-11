@@ -286,7 +286,8 @@ describe("edge swipe", () => {
     await move(0.5);
     expect(scrollY).toBe(700);
     await move(0.4);
-    expect(scrollY).toBe(0);
+    // Back to the top by way of a viewport down (aim.ts): two frames.
+    await until(() => scrollY === 0, "the window back at the screen left");
     touch("touchend", innerWidth * 0.4, 150);
     await settled();
     expect(location.pathname).toBe(at("/post"));

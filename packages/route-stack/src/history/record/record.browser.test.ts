@@ -1,12 +1,18 @@
 import { beforeAll, describe, expect, test } from "vitest";
-import type { Entries, Entry } from "../index";
+import type { Entry, Tracked } from "../index";
 
-// A browser without the Navigation API (Safari before 26.2): the module
-// installs the polyfill at import, after a router-like wrapper, a router-like
-// popstate listener and entries that were made before it loaded.
-let entries: Entries;
+// The module starts its record of history at import, here after a router-like
+// wrapper, a router-like popstate listener and entries that were made before
+// it loaded.
+let entries: Tracked;
 let wrapperCalls = 0;
 let seenByRouter: Entry | undefined;
+let drawnForRouter: boolean | undefined;
+// As single-spa: its wrapper tells its own listeners of a history call with a
+// popstate.
+let echo = false;
+// As a scroll saver: it writes into the entry being left, before the push.
+let saves = false;
 const native = History.prototype.pushState;
 
 const traverse = async (go: () => void) => {
@@ -18,18 +24,21 @@ const traverse = async (go: () => void) => {
 };
 
 beforeAll(async () => {
-  Object.defineProperty(window, "navigation", {
-    value: undefined,
-    configurable: true,
-  });
   native.call(history, null, "", "?before=1");
   native.call(history, { router: "kept" }, "", "?before=2");
   const earlier = history.pushState;
   history.pushState = function (...args) {
     wrapperCalls++;
+    if (saves) history.replaceState({ ...history.state, saved: 1 }, "");
     earlier.apply(this, args);
+    // And, as some do, a history call of its own inside the one it wraps.
+    if (echo) history.replaceState(history.state, "");
+    if (echo) dispatchEvent(new PopStateEvent("popstate", { state: args[0] }));
   };
-  addEventListener("popstate", () => (seenByRouter = entries.current()));
+  addEventListener("popstate", () => {
+    seenByRouter = entries.current();
+    drawnForRouter = entries.drawn();
+  });
   ({ entries } = await import("../index"));
 });
 
@@ -60,18 +69,115 @@ describe("installed into a page already in use, next to routers", () => {
     await traverse(() => history.forward());
   });
 
-  // Only WebKit runs a capture listener before ones registered earlier;
-  // Chromium, which has the Navigation API, would not use the polyfill.
-  test.runIf(!navigator.userAgent.includes("Chrome"))(
-    "the entry is current inside a router's earlier popstate listener",
-    async () => {
-      history.pushState(null, "", "?a");
-      const a = entries.current();
-      history.pushState(null, "", "?b");
+  // Chromium runs a listener registered earlier before a capture one: the
+  // entry is read where it is asked for, not only at the stack's own popstate.
+  test("the entry is current inside a router's earlier popstate listener", async () => {
+    history.pushState(null, "", "?a");
+    const a = entries.current();
+    history.pushState(null, "", "?b");
+    await traverse(() => history.back());
+    expect(seenByRouter).toEqual(a);
+  });
+
+  // As the entry: the stack's own popstate listener has not run yet there.
+  test("a traversal the browser drew is known inside that listener too", async () => {
+    const flag = Object.getOwnPropertyDescriptor(
+      PopStateEvent.prototype,
+      "hasUAVisualTransition",
+    );
+    Object.defineProperty(PopStateEvent.prototype, "hasUAVisualTransition", {
+      configurable: true,
+      get: () => true,
+    });
+    try {
+      history.pushState(null, "", "?drawn-a");
+      history.pushState(null, "", "?drawn-b");
       await traverse(() => history.back());
-      expect(seenByRouter).toEqual(a);
-    },
-  );
+      expect(drawnForRouter).toBe(true);
+    } finally {
+      if (flag)
+        Object.defineProperty(
+          PopStateEvent.prototype,
+          "hasUAVisualTransition",
+          flag,
+        );
+      else
+        delete (PopStateEvent.prototype as { hasUAVisualTransition?: boolean })
+          .hasUAVisualTransition;
+    }
+    await traverse(() => history.back());
+    expect(drawnForRouter).toBe(false);
+  });
+
+  // Taken for a traversal, the push was told of twice, and the entries it cut
+  // stayed known: no swipe back after it.
+  test("a popstate a wrapper dispatches for a push is not a traversal", async () => {
+    history.pushState(null, "", "?echo-a");
+    history.pushState(null, "", "?echo-b");
+    const cut = entries.current();
+    await traverse(() => history.back());
+    const from = entries.current();
+    const kinds: string[] = [];
+    const stop = entries.subscribe(({ type }) => kinds.push(type));
+    echo = true;
+    try {
+      history.pushState(null, "", "?echo-c");
+    } finally {
+      echo = false;
+      stop();
+    }
+    expect(kinds).toEqual(["push"]);
+    expect(entries.current().index).toBe(from.index + 1);
+    expect(entries.indexOf(cut.key)).toBeNull();
+    expect(history.state.__routeStack.key).toBe(entries.current().key);
+  });
+
+  // Stamped as the new entry, the one left answered to its key: a back to it
+  // changed no screen.
+  test("a write a wrapper makes before a push stays on the entry being left", async () => {
+    history.pushState(null, "", "?save-a");
+    const left = entries.current();
+    saves = true;
+    try {
+      history.pushState(null, "", "?save-b");
+    } finally {
+      saves = false;
+    }
+    const pushed = entries.current();
+    expect(pushed.index).toBe(left.index + 1);
+    expect(history.state.__routeStack.key).toBe(pushed.key);
+    await traverse(() => history.back());
+    expect(history.state.saved).toBe(1);
+    expect(history.state.__routeStack.key).toBe(left.key);
+    expect(entries.current().key).toBe(left.key);
+  });
+
+  // Stamped by a version without runs of indexes: one run among themselves.
+  test("entries stamped without a run are compared with each other", async () => {
+    const raw = History.prototype.pushState;
+    const start = entries.current();
+    raw.call(
+      history,
+      { __routeStack: { key: "old-a", index: 40 } },
+      "",
+      "?old-a",
+    );
+    raw.call(
+      history,
+      { __routeStack: { key: "old-b", index: 41 } },
+      "",
+      "?old-b",
+    );
+    await traverse(() => history.back());
+    expect(entries.current()).toMatchObject({ key: "old-a", index: 40 });
+    await traverse(() => history.forward());
+    expect(entries.current()).toMatchObject({ key: "old-b", index: 41 });
+    expect(entries.indexOf("old-a")).toBe(40);
+    // Back in the run this document began: the others are not compared.
+    await traverse(() => history.go(-2));
+    expect(entries.current().key).toBe(start.key);
+    expect(entries.indexOf("old-a")).toBeNull();
+  });
 
   test("one instance per document", async () => {
     const url = "../index.ts?again";
@@ -89,7 +195,7 @@ describe("installed into a page already in use, next to routers", () => {
     };
     history.pushState(null, "", "?later");
     const later = entries.current();
-    expect(history.state.__routeStack).toEqual({
+    expect(history.state.__routeStack).toMatchObject({
       key: later.key,
       index: later.index,
     });

@@ -20,7 +20,7 @@ The usual answer is the View Transition API: take a picture of the old page, ren
 route-stack keeps the screens instead of pictures of them.
 
 - **Screens stay alive.** Each screen you leave stays in the DOM, hidden by React's `<Activity>`: its state, inputs and scroll are kept, and its effects pause until it shows again.
-- **Two live screens slide.** A push, a back, and a swipe all lift the two screens into viewport-sized layers and animate them with the Web Animations API — `transform` and `opacity` only, run by the compositor.
+- **Two live screens slide.** A push, a back, and a swipe all lift the two screens into fixed layers and animate them with the Web Animations API — `transform` and `opacity` only, run by the compositor.
 - **History decides.** Which screen an entry shows, and whether a move is a push, a back or a replace, comes from the browser's history — not from the router — so every router behaves the same.
 - **The router is untouched.** You keep your routes, loaders and links. An adapter tells the stack only the path it rendered.
 

@@ -12,14 +12,14 @@
                               slide: layers · aim · motion
 ```
 
-| Piece         | Job                                                                                                                                   |
-| ------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
-| **history**   | Wraps the Navigation API (or a fallback on `history.state`). Tells which screen each history entry shows, and the kind of every move. |
-| **Core**      | A state machine: the screens, the one shown, and the slide between two of them. No React, no router.                                  |
-| **`<Stack>`** | The React binding. Renders every kept screen inside `<Activity>`, and hands each render and commit to the core.                       |
-| **adapter**   | Reads the router: the path it rendered, and whether that render is for the current entry (`view()`).                                  |
-| **slide**     | Lifts two screens into layers, scrolls the window behind them, plays keyframes.                                                       |
-| **swipe**     | Turns a touch at the left edge (or anywhere, with `swipe="full"`) into progress and a release, unless the page takes the drag.        |
+| Piece         | Job                                                                                                                                          |
+| ------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| **history**   | Keeps a key and an index for each history entry in `history.state`. Tells which screen each history entry shows, and the kind of every move. |
+| **Core**      | A state machine: the screens, the one shown, and the slide between two of them. No React, no router.                                         |
+| **`<Stack>`** | The React binding. Renders every kept screen inside `<Activity>`, and hands each render and commit to the core.                              |
+| **adapter**   | Reads the router: the path it rendered, and whether that render is for the current entry (`view()`).                                         |
+| **slide**     | Lifts two screens into layers, scrolls the window behind them, plays keyframes.                                                              |
+| **swipe**     | Turns a touch at the left edge (or anywhere, with `swipe="full"`) into progress and a release, unless the page takes the drag.               |
 
 ## The DOM
 
@@ -67,7 +67,7 @@ Steps 2 to 4 happen before the browser paints, so the first frame already shows 
 
 A layer shows its content at its saved scroll by offsetting it, while the real window scroll sits behind the layers. Before a slide ends, the window is moved to where the arriving screen will sit. Then dropping the layers changes nothing on screen.
 
-Dropping the layers and jumping the scroll in the same frame made iOS WebKit paint a blank frame. Scrolling ahead avoids that.
+Dropping the layers and jumping the scroll in the same frame made iOS WebKit paint a blank frame. Scrolling ahead avoids that. A window less than a viewport down reaches the top by way of a viewport down, two frames apart: iOS Safari drops a scroll to the top while the window sits under its top bar, and draws the screen shifted.
 
 - Push and button back: the window moves when the slide starts.
 - Swipe: the window follows the nearer screen — past 55% the arriving one, under 45% the leaving one — so whichever way the release goes, it is already there.

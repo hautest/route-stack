@@ -39,7 +39,7 @@ const at = (key: string, index: number, path: string) => ({
 });
 
 // Entries made before a reload or this module, or a fragment's popstate under
-// the polyfill: never recorded.
+// the record: never recorded.
 test("a traversal to an entry never seen is the screen it came from at the same URL, else a new one", () => {
   const history = entries(at("a", 1, "/a"));
   const a = history.map.screenOf("a");

@@ -17,7 +17,7 @@
 ## 라우터 {#routers}
 
 - **브라우저 history 하나를 그대로 따릅니다.** 탭마다 따로 쌓는 스택이나 모달 안의 스택은 만들 수 없습니다.
-- **`#` 앵커로 쌓인 history 항목에서는 스와이프 백이 되지 않습니다.** `<a href="#comments">`를 누르면 같은 screen 안에서 스크롤만 이동하고 history에는 항목이 하나 쌓입니다. 이 위치에서는 바로 뒤 항목도 같은 screen이라 스와이프가 열리지 않습니다. 뒤로가기 버튼으로 돌아온 뒤에는 스와이프가 됩니다. iOS Safari 26.2 미만에서는 앵커에 다녀온 페이지에서도 스와이프가 열리지 않습니다. 앵커 이동을 history에 남기지 않으려면 `element.scrollIntoView()`를 쓰면 됩니다.
+- **`#` 앵커로 이동하는 것은 지원하지 않습니다.** `<a href="#comments">`를 누르거나 `location.hash`를 바꾸면 history에 항목이 하나 쌓이고 `location.replace("#comments")`는 지금 항목을 바꿔 씁니다. 스택은 어느 쪽이든 같은 주소의 다른 항목과 구분하지 못합니다. 지원하지 않는 사용법이며 그 뒤 back이나 스와이프가 무엇을 보여 줄지 보장하지 않습니다(스와이프가 열리지 않을 수 있고 같은 앵커를 다시 방문하면 예전 screen이 나올 수 있습니다). 개발 모드에서는 콘솔에 경고가 한 번 나옵니다. 대신 `element.scrollIntoView()`로 스크롤하세요. history에 항목을 만들지 않습니다. 라우터가 `pushState`로 처리하는 링크는 해당하지 않습니다.
 - **라우터의 View Transition은 꺼야 합니다.** React Router는 `viewTransition`, TanStack은 `defaultViewTransition`입니다. 켜 두면 `document.startViewTransition`이 슬라이드 중인 레이어를 캡처합니다.
 - **Next.js intercepting route와 parallel route**(`@modal`)는 지원하지 않습니다. 피드에서 사진을 모달로 열면 pathname이 바뀌므로, 스택은 피드와 모달을 포함한 레이아웃 전체를 새 screen으로 다시 렌더해 push합니다. 이를 지원하려면 어댑터가 모달 슬롯과 페이지를 구분해야 하는데, Next는 이 정보를 공개하지 않습니다. 이런 모달은 컴포넌트 상태로 열거나 같은 screen에 머무는 이동으로 열어야 합니다. 예를 들어 `?photo=`를 replace하면 기본 규칙에서 같은 screen입니다([`sameScreen`](/ko/how-it-works/screens-and-history#what-is-a-new-screen) 참고).
 - **자체 스택을 가진 라우터**(Ionic `IonRouterOutlet`, 웹의 React Navigation)나 이전 페이지를 붙잡아 두는 페이지 전환(Framer Motion `AnimatePresence`)은 스택과 같은 일을 하므로 충돌합니다.
@@ -32,6 +32,7 @@
 ## 브라우저 {#browsers}
 
 - **iOS Safari(웹뷰가 아닌 브라우저)에서는 자체 가장자리 스와이프가 스택의 스와이프와 함께 동작합니다.** 자세한 내용은 [트러블슈팅](./troubleshooting#ios-safari-two-swipes)에 있습니다.
+- **iOS 26 Safari에서는 전환 중에 Safari 바 뒤쪽이 비어 보입니다.** Safari는 반투명한 바 뒤에 페이지 내용을 그리지만 `position: fixed` 요소는 그리지 않습니다. 전환 중인 screen이 바로 fixed 레이어입니다. 그래서 전환하는 동안에는 그 자리에 페이지 배경만 보입니다. 전환이 끝나면 screen의 내용이 보입니다. 웹뷰에는 Safari 바가 없어서 해당하지 않습니다.
 - **보관한 screen은 메모리에만 있습니다.** 새로고침하면 처음부터 다시 시작합니다.
 - **새로고침하거나 딥링크로 들어온 직후의 첫 screen에는 뒤에 screen이 없습니다.** 스와이프는 동작하지 않고, 뒤로가기 버튼은 동작합니다.
 - **선언 없이 JS로 만든 제스처는 스와이프와 함께 움직입니다.** `transform`으로 움직이는 캐러셀이나 드로어에는 `touch-action: pan-y`나 `data-stack-no-swipe`가 필요합니다. 자세한 내용은 [스와이프 백](/ko/guide/swipe-back#js-gestures)에 있습니다.

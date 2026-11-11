@@ -24,6 +24,7 @@ const fake = vi.hoisted(() => ({
 interface FakeSlide {
   enter: number | null;
   leave: number | null;
+  transition: { enter?: unknown };
   back: boolean;
   ended: boolean;
   progress: number;
@@ -35,11 +36,12 @@ const idOf = (layer: Layer | null) =>
   layer && (layer.host as unknown as { id: number }).id;
 
 vi.mock("../transition/slide", () => ({
-  slide(enter: Layer, leave: Layer, _transition: unknown, back: boolean) {
+  slide(enter: Layer, leave: Layer, transition: object, back: boolean) {
     let finish = () => {};
     const control = {
       enter: idOf(enter),
       leave: idOf(leave),
+      transition,
       back,
       ended: false,
       progress: 0,
@@ -135,7 +137,8 @@ beforeEach(() => {
     frames.push(callback);
     return frames.length;
   });
-  vi.stubGlobal("scrollTo", (_x: number, y: number) => (win.y = y));
+  vi.stubGlobal("scrollTo", ({ top = 0 }: ScrollToOptions) => (win.y = top));
+  vi.stubGlobal("scrollX", 0);
   Object.defineProperty(globalThis, "scrollY", {
     get: () => win.y,
     configurable: true,
@@ -186,6 +189,7 @@ function fakeHistory(path = "/home", base = "") {
   let seq = 0;
   let backs = 0;
   let lookups = 0;
+  let drawn = false;
   const listeners = new Set<(event: NavigationEvent) => void>();
   const current = () => list[at]!;
   const emit = (type: NavigationEvent["type"], from: Entry) => {
@@ -209,14 +213,20 @@ function fakeHistory(path = "/home", base = "") {
   const { apply, ...screens } = createScreenMap(entries);
   entries.subscribe(apply);
 
-  const go = (delta: number) => {
+  /** `byBrowser`: a traversal the browser drew itself (Safari's edge swipe). */
+  const go = (delta: number, byBrowser = false) => {
     const from = current();
     at += delta;
     emit("traverse", from);
+    drawn = byBrowser;
   };
 
   return {
-    tracked: { ...entries, ...screens } satisfies Tracked,
+    tracked: {
+      ...entries,
+      ...screens,
+      drawn: () => drawn,
+    } satisfies Tracked,
     push(to: string) {
       const from = current();
       list = [
@@ -225,11 +235,10 @@ function fakeHistory(path = "/home", base = "") {
       ];
       emit("push", from);
     },
-    /** `newKey`: as WebKit's Navigation API replaces. */
-    replace(to: string, newKey = false) {
+    replace(to: string) {
       const from = current();
       list[at] = {
-        key: newKey ? `k${++seq}` : from.key,
+        key: from.key,
         index: at,
         url: url(to),
       };
@@ -540,17 +549,6 @@ describe("R2 commit", () => {
       "back",
     ]);
     expect(slide()).toMatchObject({ leave: a, back: true });
-  });
-
-  test("a replace that gave the entry a new key (WebKit) is still a replace", async () => {
-    const stack = mount();
-    await pushed(stack, "/me");
-    logged.length = 0;
-    stack.history.replace("/login", true);
-    stack.render("/login");
-    expect(events("commit").map((entry) => entry.data?.direction)).toEqual([
-      "replace",
-    ]);
   });
 });
 
@@ -1269,4 +1267,39 @@ test("two screens for one history screen are reported in development", () => {
   } finally {
     report.mockRestore();
   }
+});
+
+describe("a traversal the browser drew", () => {
+  const stilled = () => "enter" in slide().transition;
+
+  test("slides with nothing moving: the browser showed the screen already", async () => {
+    const stack = mount();
+    await pushed(stack, "/post");
+    stack.history.go(-1, true);
+    stack.render("/home");
+    expect(slide().back).toBe(true);
+    expect(slide().transition.enter).toEqual([
+      { transform: "none" },
+      { transform: "none" },
+    ]);
+  });
+
+  test("the page's own back slides as ever", async () => {
+    const stack = mount();
+    await pushed(stack, "/post");
+    stack.history.go(-1);
+    stack.render("/home");
+    expect(stilled()).toBe(false);
+  });
+
+  // The entries are shared by every copy of the module on the page: an older
+  // one, loaded first, made them without `drawn`.
+  test("entries of an older copy slide as ever", async () => {
+    const stack = mount();
+    await pushed(stack, "/post");
+    delete (stack.history.tracked as Partial<Tracked>).drawn;
+    stack.history.go(-1, true);
+    stack.render("/home");
+    expect(stilled()).toBe(false);
+  });
 });

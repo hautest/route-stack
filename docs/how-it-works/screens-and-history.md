@@ -39,12 +39,12 @@ A screen stays while some entry at or behind the current one still shows it.
 
 There is no limit on the number of kept screens.
 
-## Navigation API and the fallback
+## How entries are told apart
 
-Where the Navigation API exists, the stack reads entries from it. Elsewhere (Safari before 26.2) it keeps a key and an index in `history.state`:
+The stack keeps a key and an index for every entry in `history.state`, the same way in every browser. It does not read the Navigation API: Safari before 26.2 has none, and in Safari's private windows it does not follow `pushState`.
 
 - It merges into the state the router writes; routers keep their own fields.
-- Entries created before route-stack loaded (or by `#anchor` links) are remembered by URL.
+- Entries created before route-stack loaded are remembered by URL. So are entries made by `#anchor` links, which the stack does not support: see [Limitations](/reference/limitations#routers).
 - Load route-stack with the app, before the first navigation: entries made before it share one index, so their order is unknown.
 
 ## Next.js order

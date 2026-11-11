@@ -71,6 +71,34 @@ export const android: Transition = {
   },
 };
 
+const IN_PLACE = [{ transform: "none" }, { transform: "none" }];
+const GONE = [{ opacity: 0 }, { opacity: 0 }];
+
+// A few frames: the window is aimed behind the layers frames before they drop.
+const STILL = 50;
+
+/**
+ * The slide with nothing moving, for a traversal the browser drew itself
+ * (Safari's swipe from the screen edge): the screen arrived at is in place
+ * from the first frame, the one left never shows. Still a slide: the window
+ * goes to the screen's scroll behind the layers, as after any other (aim.ts).
+ * A short one: nothing moves, and the layers do not paint under the browser's
+ * bars as the page does (iOS Safari), so the screen changes there when they
+ * drop.
+ */
+export const still = ({
+  duration,
+  easing,
+  enterOnTop,
+}: Transition): Transition => ({
+  duration: Math.min(duration, STILL),
+  easing,
+  enterOnTop,
+  enter: IN_PLACE,
+  leave: GONE,
+  back: { enter: IN_PLACE, leave: GONE },
+});
+
 /**
  * Whether the page runs on Android (a WebView, or a browser even asking for the
  * desktop site).

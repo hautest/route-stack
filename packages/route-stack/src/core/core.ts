@@ -4,7 +4,8 @@ import { dev, log } from "../log";
 import { listenSwipe, type Drag, type Swipe } from "../swipe/swipe";
 import { firstScroll } from "../transition/layers";
 import { slide, type Side, type SlideControl } from "../transition/slide";
-import { defaultAnimate } from "../transition/transitions";
+import { scrollWindow } from "../transition/aim";
+import { defaultAnimate, still } from "../transition/transitions";
 import type { Animate, Direction, SameScreen, SwipeMode, View } from "../types";
 import { ProgressVar } from "./progress";
 
@@ -47,6 +48,8 @@ type Run =
       to: number;
       end: Side;
       await: boolean;
+      /** Nothing moves (the browser drew the traversal): no progress. */
+      still?: boolean;
     };
 
 type Moving = Extract<Run, { phase: "play" | "rest" }>;
@@ -78,7 +81,7 @@ export class Core {
     sameScreen: defaultSameScreen,
   };
   private run: Run | null = null;
-  /** The last slide ended, while its drop is put off a frame. */
+  /** The last slide ended, kept to end it again while its drop is put off. */
   private dropping: SlideControl | null = null;
   private swipe: Swipe | null = null;
   private driver: Driver | null = null;
@@ -246,7 +249,13 @@ export class Core {
   listen(swipe: boolean) {
     const onScroll = () => {
       // Not during a slide: that scroll aims the window behind the layers.
-      if (this.driver && !this.run && this.shownId != null)
+      // Nor while its drop is put off: the window may still be on its way.
+      if (
+        this.driver &&
+        !this.run &&
+        !this.dropping?.pending &&
+        this.shownId != null
+      )
         this.scrolls.set(this.shownId, scrollY);
     };
 
@@ -360,7 +369,15 @@ export class Core {
 
     // R5: the screen being slid to was replaced (a redirect): the running
     // slide goes on to the new one.
-    if (run && toHost && direction === "replace" && run.to === from.id) {
+    // Not a still one (the browser drew that traversal, to the screen
+    // replaced): the new screen slides in as any other.
+    if (
+      run &&
+      toHost &&
+      direction === "replace" &&
+      run.to === from.id &&
+      !(run.phase !== "drag" && run.still)
+    ) {
       // At its first scroll, as R4: a redirect to `/doc#section` opens there.
       const scroll = this.scrolls.get(to.id) ?? firstScroll(toHost);
       this.scrolls.set(to.id, scroll);
@@ -377,15 +394,22 @@ export class Core {
     if (toHost && !this.scrolls.has(to.id))
       this.scrolls.set(to.id, firstScroll(toHost));
 
-    const transition = this.options.animate(leaving.path, to.path, direction);
+    const animated = this.options.animate(leaving.path, to.path, direction);
+    // A slide over the browser's own would show the screen left again, then
+    // slide it away. (No `drawn` on the entries of an older copy of this
+    // module, loaded first: they are shared.)
+    const drawn = !!animated && !!this.entries.drawn?.();
+    const transition = animated && drawn ? still(animated) : animated;
     if (!transition || !fromHost || !toHost) {
       // Settle ends a cut slide: the window first goes where this screen
       // sits, behind its layers.
       return this.settle();
     }
 
-    // The slide below lifts the hosts again at once, and aims the window.
-    run?.control.end(this.layerOf(to.id), true);
+    // The slide below lifts the hosts again at once, and aims the window: a
+    // drop still put off must not move it after that.
+    (run?.control ?? this.dropping)?.end(this.layerOf(to.id), true);
+    this.dropping = null;
 
     const control = slide(
       { host: toHost, scroll: this.scrolls.get(to.id) ?? 0 },
@@ -401,6 +425,7 @@ export class Core {
       to: to.id,
       end: "enter",
       await: false,
+      still: drawn,
     });
     this.trackProgress();
   }
@@ -442,12 +467,12 @@ export class Core {
       saved: scrolls.get(shownId ?? -1),
     });
 
-    // Without a slide, the last one ended: a drop it put off a frame lands on
-    // the screen shown now, not the one it was ended with.
+    // Without a slide, the last one ended: a drop it put off lands on the
+    // screen shown now, not the one it was ended with.
     this.dropping = this.run?.control ?? this.dropping;
     this.dropping?.end(this.layerOf(shownId));
-    // Kept only while its drop is put off: a later settle in that frame decides
-    // it again.
+    // Kept only while its drop is put off: a later settle meanwhile decides it
+    // again.
     if (!this.dropping?.pending) this.dropping = null;
     // A drag ended by something else (R12). A finger down that has not
     // decided yet (a slide ending under it) stays: it can still swipe.
@@ -455,7 +480,8 @@ export class Core {
     this.run = null;
     this.progressVar.clear();
 
-    scrollTo(0, scrolls.get(shownId ?? -1) ?? 0);
+    // A drop put off takes the window there itself, behind its layers.
+    if (!this.dropping) scrollWindow(scrolls.get(shownId ?? -1) ?? 0);
 
     if (this.prune()) {
       for (const id of scrolls.keys())
@@ -534,7 +560,8 @@ export class Core {
    */
   private progress() {
     const run = this.run;
-    if (!run) return null;
+    // A header following a still slide's progress would move a second time.
+    if (!run || (run.phase !== "drag" && run.still)) return null;
     const { progress } = run.control;
     return run.to === this.shownId ? progress : 1 - progress;
   }
@@ -586,7 +613,9 @@ export class Core {
 
   private beginSwipe(): Drag | null {
     const target = this.swipeTarget();
-    if (!target) return null;
+    // Nor while a drop is put off: the window is still on its way, and would
+    // be saved as the screen's scroll.
+    if (!target || this.dropping?.pending) return null;
 
     const { from, to, transition, fromHost, toHost } = target;
     this.scrolls.set(from.id, scrollY);
