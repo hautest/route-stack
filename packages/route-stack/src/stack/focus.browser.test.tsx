@@ -268,9 +268,10 @@ test("a swipe back committed after its slide rested ends at the field it focuses
     if (!dropped && !lifted().length) dropped = now();
   });
   const windowScroll = window.scrollTo;
-  window.scrollTo = ((x: number, y: number) => {
-    if (Math.round(y) !== Math.round(scrollY)) scrolls.push(now());
-    windowScroll.call(window, x, y);
+  window.scrollTo = ((options: ScrollToOptions) => {
+    if (Math.round(options.top ?? 0) !== Math.round(scrollY))
+      scrolls.push(now());
+    (windowScroll as (options: ScrollToOptions) => void).call(window, options);
   }) as typeof window.scrollTo;
   try {
     const landed = new Promise((resolve) =>

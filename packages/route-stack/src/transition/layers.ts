@@ -50,14 +50,21 @@ export const background = (from: HTMLElement) => {
  */
 const ANIMATING = "data-stack-animating";
 
-// The slide that last lifted each host: a drop deferred a frame leaves a host
-// another slide has lifted since.
+// The slide that last lifted each host: a drop put off leaves a host another
+// slide has lifted since.
 const owners = new WeakMap<HTMLElement, object>();
 
-/** Where the screens sit in the document, read when a slide starts. */
+/**
+ * Where the screens sit in the document, read when a slide starts (`across`
+ * again when the window is resized under it, or the root grows).
+ */
 export function geometryOf(root: HTMLElement) {
+  const rect = root.getBoundingClientRect();
   // Below content in flow above the stack (an app header).
-  const origin = root.getBoundingClientRect().top + scrollY;
+  const origin = rect.top + scrollY;
+  // Beside what is next to the stack (a sidebar): the layers take its place
+  // across, not the viewport's.
+  const across = { left: rect.left, width: rect.width };
 
   /**
    * The window scroll a layer shows: the saved one, clamped to where its
@@ -76,20 +83,21 @@ export function geometryOf(root: HTMLElement) {
       ),
     );
 
-  return { origin, offsetOf };
+  return { origin, offsetOf, across };
 }
 
 export type Geometry = ReturnType<typeof geometryOf>;
 
 /**
- * Lifts screen hosts as viewport-sized fixed layers and drops them, for one
- * slide (`owner`). The content is offset by margin, not scrollTop: a
- * transformed layer would carry fixed children with the scroll.
+ * Lifts screen hosts as fixed layers, the stack's width and down to the
+ * viewport's end, and drops them, for one slide (`owner`). The content is
+ * offset by margin, not scrollTop: a transformed layer would carry fixed
+ * children with the scroll.
  */
 export function layersOf(
   owner: object,
   bg: string,
-  { origin, offsetOf }: Geometry,
+  { origin, offsetOf, across }: Geometry,
 ) {
   // The screen where the window shows it at that scroll: the layer starts
   // below what is above the stack while that is in view, and does not cover it.
@@ -123,7 +131,9 @@ export function layersOf(
     show(layer);
     Object.assign(host.style, {
       position: "fixed",
-      inset: "0",
+      bottom: "0",
+      left: `${across.left}px`,
+      width: `${across.width}px`,
       overflow: "hidden",
       // A focus scrolls it in one step, folded whole (slide.ts): an app's
       // smooth scrolling would be folded midway, its steps cut.
@@ -144,8 +154,10 @@ export function layersOf(
 
     for (const property of [
       "position",
-      "inset",
       "top",
+      "bottom",
+      "left",
+      "width",
       "overflow",
       "z-index",
       "background",

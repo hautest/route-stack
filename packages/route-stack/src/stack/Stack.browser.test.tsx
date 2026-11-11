@@ -1,6 +1,7 @@
 import { describe, expect, test, vi } from "vitest";
 import {
   finishSlide,
+  frame,
   hosts,
   lifted,
   pauseSlide,
@@ -32,6 +33,32 @@ import {
 } from "../transition/transitions";
 
 setupStack();
+
+// When the window was last moved and when the layers dropped, by the frame's
+// time: the same within one frame. Dropped in the frame of a scroll, iOS
+// WebKit paints blank.
+function movesAndDrop() {
+  const now = () => Number(document.timeline.currentTime);
+  const times = { moved: -1, dropped: -1 };
+  const native = window.scrollTo;
+  window.scrollTo = ((...args: unknown[]) => {
+    times.moved = now();
+    (native as (...args: unknown[]) => void).apply(window, args);
+  }) as typeof window.scrollTo;
+  const seen = new MutationObserver(() => {
+    if (times.dropped < 0 && !lifted().length) times.dropped = now();
+  });
+  seen.observe(document.body, {
+    subtree: true,
+    attributes: true,
+    attributeFilter: ["style"],
+  });
+  return () => {
+    window.scrollTo = native;
+    seen.disconnect();
+    return times;
+  };
+}
 
 let app: ReturnType<typeof mount> | null = null;
 
@@ -158,6 +185,9 @@ describe("Stack", () => {
     await scrolled(700);
     app.push(at("/post"));
     pauseSlide();
+    // Once the window is where the slide put it (aim.ts): someone else's
+    // scroll before that would be undone on its way.
+    await until(() => scrollY === 0, "the window aimed");
     scrollTo(0, 300);
 
     // At the log, not a frame later: the drop is put off by one frame.
@@ -172,11 +202,117 @@ describe("Stack", () => {
     finishSlide();
     await late;
     app.push(at("/plain"));
-    expect(shown().map(pageOf)).toEqual([at("/plain")]);
+    // The layers stay up until the window is where the new screen sits
+    // (aim.ts); under them, the document shows that screen alone.
+    const inFlow = () => shown().filter((host) => !lifted().includes(host));
+    expect(inFlow().map(pageOf)).toEqual([at("/plain")]);
 
     await until(() => !lifted().length, "the drop put off");
     expect(shown().map(pageOf)).toEqual([at("/plain")]);
     logged.splice(0); // its late-scroll warning is the point
+  });
+
+  // The window's way to the top (aim.ts), through the stack: what observes the
+  // screens' content aims again in the first frame, and must not cut it short.
+  test("a push from near the top takes the window a viewport down, then to the top two frames later", async () => {
+    app = mount();
+    await scrolled(50);
+    const seen: [y: number, frame: number][] = [];
+    let frames = 0;
+    const count = () => {
+      frames++;
+      if (lifted().length) requestAnimationFrame(count);
+    };
+    const onScroll = () => seen.push([Math.round(scrollY), frames]);
+    addEventListener("scroll", onScroll);
+    try {
+      app.push(at("/post"));
+      requestAnimationFrame(count);
+      await settled();
+    } finally {
+      removeEventListener("scroll", onScroll);
+    }
+    const down = seen.find(
+      ([y]) => y === document.documentElement.clientHeight,
+    );
+    const top = seen.find(([y]) => y === 0);
+    expect(down && top).toBeTruthy();
+    expect(top![1] - down![1]).toBeGreaterThanOrEqual(2);
+    expect(scrollY).toBe(0);
+  });
+
+  // The settle's own scroll to the screen would cut the window's way short:
+  // to the top from under where a browser's bar can be.
+  test("a slide ended while the window is on its way leaves it on its way", async () => {
+    app = mount();
+    await scrolled(50);
+    const done = movesAndDrop();
+    app.push(at("/post"));
+    finishSlide();
+    // The settle, in the task the slide's end resolves in: before a frame.
+    await new Promise((resolve) => setTimeout(resolve));
+    expect(lifted()).toHaveLength(2);
+    expect(Math.round(scrollY)).toBe(document.documentElement.clientHeight);
+    await settled();
+    const times = done();
+    expect(scrollY).toBe(0);
+    expect(times.dropped).toBeGreaterThan(times.moved);
+  });
+
+  // Ended a frame into the window's way to the top: its last move is still to
+  // come, and the layers must not drop in that frame either.
+  test("a slide ended between the window's two moves drops a frame after the second", async () => {
+    app = mount();
+    await scrolled(50);
+    const done = movesAndDrop();
+    app.push(at("/post"));
+    await frame();
+    finishSlide();
+    await settled();
+    const times = done();
+    expect(scrollY).toBe(0);
+    expect(times.dropped).toBeGreaterThan(times.moved);
+  });
+
+  // The page's own smooth scrolling would take the window there over many
+  // frames: the layers dropped on a screen still scrolling into place.
+  test("a page that scrolls smoothly: the window is where the screen sits when the layers drop", async () => {
+    document.documentElement.style.scrollBehavior = "smooth";
+    try {
+      app = mount();
+      await scrolled(1500);
+      app.push(at("/post"));
+      await settled();
+      expect(scrollY).toBe(0);
+      await app.back();
+      await settled();
+      expect(scrollY).toBe(1500);
+    } finally {
+      document.documentElement.style.removeProperty("scroll-behavior");
+    }
+  });
+
+  // The drop put off was taken for one still under way ever after: no scroll
+  // of the new screen was saved.
+  test("the screen's scroll is saved again after a drop that was put off", async () => {
+    app = mount();
+    app.push(at("/post"));
+    pauseSlide();
+    await until(() => scrollY === 0, "the window aimed");
+    scrollTo(0, 300);
+    const done = movesAndDrop();
+    finishSlide();
+    await settled();
+    logged.splice(0); // the late scroll is the setup
+    const times = done();
+    expect(times.dropped).toBeGreaterThan(times.moved);
+
+    await scrolled(500);
+    app.push(at("/next"));
+    await settled();
+    await app.back();
+    await settled();
+    expect(scrollY).toBe(500);
   });
 
   // Content in flow above the stack (an app header): the screens start below

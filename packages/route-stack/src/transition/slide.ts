@@ -13,11 +13,14 @@ import { motionOf, type Track } from "./motion";
 
 export type { Layer } from "./layers";
 
+/** On the element over the layers that takes the touches (tests find it). */
+const SHIELD = "data-stack-shield";
+
 export type Side = "enter" | "leave";
 
 export interface SlideControl {
   readonly ended: boolean;
-  /** Ended with its drop put off a frame, not run yet. */
+  /** Ended with its drop put off, not run yet. */
   readonly pending: boolean;
   /**
    * 0: the leaving screen in place, 1: the entering one, whichever direction.
@@ -51,7 +54,7 @@ export interface SlideControl {
   /**
    * Drops the layers: `current`, the screen to show (a layer or not), stays
    * shown, the others hidden. The window is put at its scroll first, behind
-   * the layers, and they drop the next frame if it moved. `now`: another slide
+   * the layers, and they drop a frame after its last move. `now`: another slide
    * lifts the same hosts right after, and aims the window itself.
    */
   end(current: Layer | null, now?: boolean): void;
@@ -82,14 +85,13 @@ export function slide(
   const root = enter.host.parentElement as HTMLElement;
   if (dev) warnFixedContainer(root);
   const geometry = geometryOf(root);
-  const { offsetOf } = geometry;
+  const { offsetOf, across } = geometry;
   const { show, place, lift, allowFocus, owns, restore } = layersOf(
     owner,
     background(root),
     geometry,
   );
-  const aim = aimOf(root, owner, offsetOf);
-
+  const aim = aimOf(root, owner, offsetOf, () => refit());
   const pushIn = back ? leave : enter;
   const pushOut = back ? enter : leave;
   const top = transition.enterOnTop ? pushIn : pushOut;
@@ -115,6 +117,37 @@ export function slide(
   // frame.
   if (transition.shadow) top.host.style.boxShadow = transition.shadow;
 
+  // No touch or wheel on the stack scrolls the window while the layers are up,
+  // as UIKit takes no touch during a transition. Scrolled under the layers, it
+  // moved nothing, and the end scrolled the window back as the finger's scroll
+  // went on, iOS WebKit painting part of the screen blank. Held by an element
+  // of the stack's own over the layers, not by the window: what is outside the
+  // stack and drawn over it (a tab bar, a sidebar) keeps its touches. A
+  // swipe's own finger still drags: it was down before, on the screen.
+  const shield = document.createElement("div");
+  shield.setAttribute(SHIELD, "");
+  Object.assign(shield.style, {
+    position: "fixed",
+    bottom: "0",
+    left: `${across.left}px`,
+    width: `${across.width}px`,
+    zIndex: "3",
+    touchAction: "none",
+  });
+  // From where the layers start: what is in flow above the stack and in view
+  // (a header) is not under them, and keeps its touches.
+  const cover = () => {
+    const topOf = (host: HTMLElement) => parseFloat(host.style.top) || 0;
+    shield.style.top = `${Math.min(topOf(enter.host), topOf(leave.host))}px`;
+  };
+  cover();
+  const block = (event: Event) => {
+    if (event.cancelable) event.preventDefault();
+  };
+  shield.addEventListener("touchmove", block, { passive: false });
+  shield.addEventListener("wheel", block, { passive: false });
+  root.append(shield);
+
   aim.at(leave, leaveHeight, leave === top ? topOffset : bottomOffset);
 
   // inert keeps the focus where it was: a field left keeps its keyboard up.
@@ -137,6 +170,7 @@ export function slide(
     host.scrollTop = 0;
     enter.scroll = offset;
     place(enter, offset);
+    cover();
     // By host: an end aims at the core's own layer of that screen.
     if (aimed && aim.aimed?.host === host) aim.at(enter, height, offset);
     onScroll?.(host, offset);
@@ -171,6 +205,7 @@ export function slide(
 
     layers.forEach((layer, i) => place(layer, offsets[i]));
     if (aimed) aim.at(aimed.layer, aimed.height, aimed.offset);
+    cover();
   });
   for (const { host } of [enter, leave]) resized.observe(contentOf(host));
 
@@ -203,6 +238,25 @@ export function slide(
   let ended = false;
   let rested = false; // a play reached its end
   let deferred = 0; // the frame of a drop put off
+
+  // The stack's place across can change under a slide: with the window (a
+  // rotation), or as the root grows (a taller screen brings a scrollbar that
+  // takes room, no resize fired). Asked for by the aim then, not observed on
+  // the root: the root grows inside the observer of the screens' content, and
+  // an observer of it would be left undelivered there on every such growth,
+  // an error for the page.
+  function refit() {
+    const rect = root.getBoundingClientRect();
+    // A root sized by its content has none while its screens are lifted.
+    if (!rect.width) return;
+    across.left = rect.left;
+    across.width = rect.width;
+    for (const el of [enter.host, leave.host, shield]) {
+      el.style.left = `${rect.left}px`;
+      el.style.width = `${rect.width}px`;
+    }
+  }
+  addEventListener("resize", refit);
 
   return {
     get ended() {
@@ -242,16 +296,20 @@ export function slide(
       unwatch = watch(layer.host);
       if (enterOnTop && transition.shadow)
         layer.host.style.boxShadow = transition.shadow;
-      if (aim.aimed === enter) aim.at(layer);
+      // The entering layer from here: aimed at, the root may grow, and the
+      // layers are fitted again (refit), the new one among them.
+      const replaced = enter;
+      enter = layer;
+      if (aim.aimed === replaced) aim.at(layer);
 
       motion.retarget(layer.host);
 
-      restore(enter.host, false);
-      resized.unobserve(contentOf(enter.host));
+      restore(replaced.host, false);
+      resized.unobserve(contentOf(replaced.host));
       resized.observe(contentOf(layer.host));
       if (shade && !enterOnTop) layer.host.append(shade);
 
-      enter = layer;
+      cover();
       // The redirect's screen mounted, and focused, before this lift too.
       foldFocused();
     },
@@ -282,8 +340,12 @@ export function slide(
 
       const drop = () => {
         deferred = 0;
+        // Not at end(): a drop put off leaves the layers up meanwhile, and a
+        // finger's scroll in those frames is the same blank.
+        shield.remove();
+        removeEventListener("resize", refit);
         // A focus whose scroll event has not come yet: its scroll would go
-        // with the overflow. Not before: one in a drop put off a frame folds.
+        // with the overflow. Not before: one in a drop put off folds.
         fold();
         unwatch();
         motion.cancel();
@@ -298,16 +360,30 @@ export function slide(
 
       // Measured, not assumed: anything may have scrolled the window since it
       // was aimed (a router's scroll restoration).
-      if (now || !shown || Math.round(scrollY) === Math.round(offsetOf(shown)))
-        return drop();
+      // A scroll saved above the page (pulled past the top) is the top.
+      const there = () =>
+        Math.round(scrollY) ===
+        Math.max(0, Math.round(offsetOf(shown as Layer)));
+      if (now || !shown || there()) return drop();
 
       // A slide played to its end aims the window first: logged, so a blank
       // frame can be traced to it. A slide cut by a navigation without
-      // animation is the expected case.
-      if (rested) log("late-scroll", { scrollY, want: offsetOf(shown) });
+      // animation is the expected case, as one shorter than the window's way
+      // to the top (aim.ts).
+      if (rested && !aim.busy)
+        log("late-scroll", { scrollY, want: offsetOf(shown) });
       motion.pause();
-      aim.at(shown);
-      deferred = requestAnimationFrame(drop);
+      if (!aim.busy || aim.aimed?.host !== shown.host) aim.at(shown);
+      // A frame after the window's last move, never in it: that move may be
+      // this frame's (the last of its way to the top).
+      const wait = (moved: boolean) => {
+        deferred = requestAnimationFrame(() => {
+          if (aim.busy) wait(true);
+          else if (moved) wait(false);
+          else drop();
+        });
+      };
+      wait(aim.busy);
     },
   };
 }

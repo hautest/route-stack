@@ -21,8 +21,8 @@ export interface ScreenMap {
    */
   assign(key: string, screen: number): void;
   /**
-   * From the entries each screen was last current at, looked up now (indexes
-   * are renumbered by the browser past 50 entries). Unknown is a push.
+   * From the entries each screen was last current at, looked up now. Unknown
+   * is a push.
    */
   direction(from: number | null, to: number | null): Direction;
   /** The rule a push or replace is decided by from now on. */
@@ -87,10 +87,6 @@ export function createScreenMap(
         screen = same && before != null ? before : next++;
       }
 
-      // The replaced entry's place is the new one's, whichever screen it shows.
-      if (type === "replace" && from && before != null)
-        if (last.get(before)?.key === from.key) last.set(before, to);
-
       record(to, screen);
 
       // backScreen() and kept() go through the entries known: not the ones a
@@ -118,7 +114,7 @@ export function createScreenMap(
       let screen: number | null = null;
       for (const [other, shown] of screens) {
         const at = entries.indexOf(other);
-        // The polyfill gives a #fragment entry the index of the page it came
+        // The record gives a #fragment entry the index of the page it came
         // from: which of them a back lands on is unknown.
         if (at === index && other !== key) return null;
         if (at !== index - 1) continue;

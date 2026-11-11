@@ -1,4 +1,4 @@
-/** A session history entry. A push makes a new key; a replace keeps it (not always: see NavigationEvent). */
+/** A session history entry. A push makes a new key; a replace keeps it. */
 export interface Entry {
   key: string;
   index: number;
@@ -6,10 +6,8 @@ export interface Entry {
 }
 
 /**
- * A change of the current entry, shaped as the Navigation API's: `from` is the
- * entry current before (null when unknown), `to` the one current now. A replace
- * may give `to` a new key (WebKit's Navigation API): `from` is the entry it
- * replaced.
+ * A change of the current entry: `from` is the entry current before (null
+ * when unknown), `to` the one current now.
  */
 export interface NavigationEvent {
   type: "push" | "replace" | "traverse";
@@ -21,7 +19,7 @@ export interface Entries {
   current(): Entry;
   /**
    * The index of a live entry, looked up now; null once the entry is gone (cut
-   * by a push).
+   * by a push), or no longer comparable (stamped in another run of indexes).
    */
   indexOf(key: string): number | null;
   back(): void;
@@ -34,7 +32,6 @@ export interface Entries {
 }
 
 /**
- * Stands in for an entry where there is none: on the server, or before the
- * document is active.
+ * Stands in for an entry where there is none: on the server.
  */
 export const NO_ENTRY: Entry = { key: "", index: 0, url: "" };

@@ -1,5 +1,5 @@
 // Bundleless output keeps import paths as written: an import of a folder
-// ("./polyfill") would point at a file that doesn't exist. Fails the build if a
+// ("./record") would point at a file that doesn't exist. Fails the build if a
 // relative import in dist doesn't resolve.
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
