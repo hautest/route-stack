@@ -23,6 +23,10 @@ The check also matches Chrome and Firefox on iOS, which have the same swipe. `un
 
 A web app added to the home screen (`display-mode: standalone`) has no Safari swipe, so the stack's stays on there.
 
+## iOS Safari: no slide after Safari's own back swipe
+
+Safari slides the page itself during its edge swipe, and shows the screen arrived at. The stack does not slide it a second time: the screens change in place (a traversal with `hasUAVisualTransition`, so Chrome's back gesture on Android and Safari's trackpad swipe on a Mac too). The change lasts a few frames, during which the screen takes no taps and no scroll, and `--route-stack-progress` is not written. Safari before 18 does not report these traversals (it has no `hasUAVisualTransition`), so there the stack still slides after Safari's swipe.
+
 ## A carousel or scroller flashes when a slide starts (iOS)
 
 The element is drawn on its own layer; Safari Web Inspector's Layers tab shows which elements are. Turn that off under `[data-stack-animating]`. See [Scroll & Layers](/guide/scroll-and-layers#elements-on-their-own-layer-data-stack-animating).

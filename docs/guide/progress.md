@@ -16,7 +16,7 @@ Something outside the stack — a shared header — can follow a slide: the stac
 
 ## The value
 
-`--route-stack-progress` is set on `<html>` during a slide and removed at rest.
+`--route-stack-progress` is set on `<html>` during a slide and removed at rest. It is not set for the change of screens after a back the browser drew itself (Safari's edge swipe): nothing moves there.
 
 - It is how far the screen the router currently renders has come in, from `0` to `1`.
 - On push it rises from 0 to 1.

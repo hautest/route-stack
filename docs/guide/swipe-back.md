@@ -33,7 +33,7 @@ Try each in the demo's selects.
 
 ## Android
 
-In Android's gesture navigation, a swipe from the left or right edge of the screen is the system back. The system takes that touch first, so even with `"edge"` the stack's swipe does not start and the system back runs instead. That is why the stack leaves the swipe off on Android by default. The system back arrives as `history.back()`, so the back transition still plays.
+In Android's gesture navigation, a swipe from the left or right edge of the screen is the system back. The system takes that touch first, so even with `"edge"` the stack's swipe does not start and the system back runs instead. That is why the stack leaves the swipe off on Android by default. The system back arrives as `history.back()`, so the back transition still plays, unless the browser drew the back itself (see [Troubleshooting](/reference/troubleshooting#ios-safari-no-slide-after-safari-s-own-back-swipe)).
 
 To use the swipe on Android too, set `swipe`. On devices with button navigation, `"edge"` works. On devices with gesture navigation, the stack only gets a drag that starts away from the edges (`"full"`).
 
@@ -71,15 +71,17 @@ Pass a function to `swipe` to choose the swipe per screen. The stack calls it wh
 
 The swipe is decided in this order.
 
-1. **Where it starts:** with the edge swipe (`swipe="edge"`), only a touch on the shown screen that starts within 20px of the window's left edge. With the full-screen swipe (`swipe="full"`), a touch anywhere on the shown screen.
+1. **Where it starts:** with the edge swipe (`swipe="edge"`), only a touch on the shown screen that starts within 20px of the stack's left edge. With the full-screen swipe (`swipe="full"`), a touch anywhere on the shown screen.
 2. **When it starts:** once the finger has moved 10px, and more to the right than up or down.
-3. **Going back:** releasing after covering 40% of the distance left to the right edge, or moving faster than 1px/ms over the last 100ms, goes back.
+3. **Going back:** releasing after covering 40% of the distance left to the stack's right edge, or moving faster than 1px/ms over the last 100ms, goes back.
 4. **Staying:** otherwise the screen settles back into place. It also settles back when the system takes the touch (`touchcancel`) or a second finger lands.
 5. **After release:** the rest of the slide plays with the transition's duration and easing.
 
 - There is nothing laid over the page: a tap at the edge reaches the button under it, and a vertical drag from the edge scrolls.
 - A swipe can only start when there is a screen to go back to. On the first screen after a reload or a deep link there is none: no swipe (the back button still works).
 - After the release, `history.back()` is called, and the router handles it as any back.
+
+Navigating to a `#` anchor (a link, `location.hash`, `location.replace`) is not supported, and may leave the page without its swipe back: see [Limitations](/reference/limitations#routers).
 
 ## What the page keeps
 
