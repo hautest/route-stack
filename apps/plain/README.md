@@ -19,7 +19,7 @@ npx create-vite@9.2.1 plain --template react-ts --no-interactive
 
 `src/router.tsx`: `useSyncExternalStore`로 `popstate`를 구독하고 `pushState`/`replaceState`로 이동한다. push 뒤에는 맨 위로 스크롤하고, back 스크롤은 브라우저 기본(`history.scrollRestoration = "auto"`)에 맡긴다. `#` 링크는 브라우저 기본 동작.
 
-라우터 기능(loader·redirect·blocker)이 없으므로 쿼리·hash·back·스와이프·스크롤 시나리오용 경로만 있다: `/`(`?category=`·`?rows=`), `/about`, `/search`(`?q=` replace), `/search/results?q=`(push, `sort` 정규화 replace), `/items/:id`(`?tab=`, `#comments`), `/products?id=`, `/lab`, `/me`(로그인 없음).
+라우터 기능(loader·redirect·blocker)이 없으므로 쿼리·back·스와이프·스크롤 시나리오용 경로만 있다: `/`(`?category=`·`?rows=`), `/about`, `/search`(`?q=` replace), `/search/results?q=`(push, `sort` 정규화 replace), `/items/:id`(`?tab=`), `/products?id=`, `/lab`, `/me`(로그인 없음).
 
 ## route-stack을 붙일 곳
 

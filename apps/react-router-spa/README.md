@@ -31,22 +31,22 @@ pnpm add react-router@^8.4.0
 
 ## 경로와 구현
 
-| 경로                                                           | 구현                                                                                                                                                                                  |
-| -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `/`, `/?category=`, `/?rows=1000`                              | loader(메모리), 카테고리 칩 `<Link>` push, 더 보기·좋아요는 컴포넌트 상태, 30초 polling(`setInterval`)                                                                                |
-| `/about`                                                       | 정적                                                                                                                                                                                  |
-| `/search`                                                      | `autoFocus` 입력, 입력 중 `setSearchParams(..., { replace: true })`, GET `<Form action="/search/results">`(push)                                                                      |
-| `/search/results?q=`                                           | loader, `sort`가 없으면 effect에서 `&sort=new`로 replace                                                                                                                              |
-| `/items/:id`                                                   | 레이아웃 route loader(300ms, `?delay=`·`?fail=1`), React context로 상세·수정에 전달, `<title>`, `?tab=` push, `<a href="#comments">`와 `<Link to="#comments">`, 마운트 때 조회수 기록 |
-| `/items/:id/edit`                                              | `action` → `replace()`로 상세, `useBlocker` + 루트 확인 모달                                                                                                                          |
-| `/products?id=`                                                | loader 300ms                                                                                                                                                                          |
-| `/me`                                                          | loader `redirect` (렌더 전)                                                                                                                                                           |
-| `/orders?delay=`                                               | loader가 Promise를 담은 객체 반환 + `<Await>`, 미로그인이면 `<Navigate replace>` (기본 1200ms)                                                                                        |
-| `/settings`                                                    | 클라이언트 가드(effect에서 `navigate(..., { replace: true })`)                                                                                                                        |
-| `/login?next=`                                                 | 로그인 상태면 loader `redirect(next)`, 로그인은 `action`에서 쿠키(`rrspa_session`) 설정 후 `replace(next)`                                                                            |
-| `/lab`                                                         | sticky·화면 안 fixed 바·캐러셀·내부 스크롤·화면 소유 portal 모달                                                                                                                      |
-| `/slow`                                                        | 3초 걸리는 `await` loader (이전 화면에 머묾)                                                                                                                                          |
-| `/error`, `/items/999`, `/items/1?fail=1`, `/crash`, 없는 경로 | route `ErrorBoundary`, 404, loader 실패, 루트 `ErrorBoundary`, `*` route                                                                                                              |
+| 경로                                                           | 구현                                                                                                                                                                            |
+| -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/`, `/?category=`, `/?rows=1000`                              | loader(메모리), 카테고리 칩 `<Link>` push, 더 보기·좋아요는 컴포넌트 상태, 30초 polling(`setInterval`)                                                                          |
+| `/about`                                                       | 정적                                                                                                                                                                            |
+| `/search`                                                      | `autoFocus` 입력, 입력 중 `setSearchParams(..., { replace: true })`, GET `<Form action="/search/results">`(push)                                                                |
+| `/search/results?q=`                                           | loader, `sort`가 없으면 effect에서 `&sort=new`로 replace                                                                                                                        |
+| `/items/:id`                                                   | 레이아웃 route loader(300ms, `?delay=`·`?fail=1`), React context로 상세·수정에 전달, `<title>`, `?tab=` push, 댓글로 스크롤하는 버튼(`scrollIntoView()`), 마운트 때 조회수 기록 |
+| `/items/:id/edit`                                              | `action` → `replace()`로 상세, `useBlocker` + 루트 확인 모달                                                                                                                    |
+| `/products?id=`                                                | loader 300ms                                                                                                                                                                    |
+| `/me`                                                          | loader `redirect` (렌더 전)                                                                                                                                                     |
+| `/orders?delay=`                                               | loader가 Promise를 담은 객체 반환 + `<Await>`, 미로그인이면 `<Navigate replace>` (기본 1200ms)                                                                                  |
+| `/settings`                                                    | 클라이언트 가드(effect에서 `navigate(..., { replace: true })`)                                                                                                                  |
+| `/login?next=`                                                 | 로그인 상태면 loader `redirect(next)`, 로그인은 `action`에서 쿠키(`rrspa_session`) 설정 후 `replace(next)`                                                                      |
+| `/lab`                                                         | sticky·화면 안 fixed 바·캐러셀·내부 스크롤·화면 소유 portal 모달                                                                                                                |
+| `/slow`                                                        | 3초 걸리는 `await` loader (이전 화면에 머묾)                                                                                                                                    |
+| `/error`, `/items/999`, `/items/1?fail=1`, `/crash`, 없는 경로 | route `ErrorBoundary`, 404, loader 실패, 루트 `ErrorBoundary`, `*` route                                                                                                        |
 
 ## 실행
 

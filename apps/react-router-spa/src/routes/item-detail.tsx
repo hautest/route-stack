@@ -57,8 +57,14 @@ export function Component() {
         )}
         <p className="muted">조회수 {views ?? "-"}</p>
         <div className="row">
-          <a href="#comments">댓글 보기 ↓</a>
-          <Link to="#comments">댓글로 이동</Link>
+          <button
+            type="button"
+            onClick={() =>
+              document.getElementById("comments")?.scrollIntoView()
+            }
+          >
+            댓글 보기 ↓
+          </button>
           <Link to={`/items/${item.id}/edit`}>수정</Link>
         </div>
         <h3>관련 글</h3>
