@@ -29,17 +29,47 @@ export function firstScroll(host: HTMLElement) {
 }
 
 /**
- * The color behind the screens: the nearest ancestor of the stack that paints
- * one (a theme wrapper, body or html), as where a screen does not cover.
+ * Whether a computed color has zero alpha. sRGB serializes as `rgb(r, g, b)`
+ * when opaque and `rgba(r, g, b, a)` otherwise; other color spaces put alpha
+ * after a slash. A color whose alpha cannot be read is not transparent.
+ */
+export const isTransparent = (color: string) => {
+  if (color === "transparent") return true;
+  const alpha =
+    /\/\s*([^\s)]+)\s*\)$/.exec(color)?.[1] ??
+    /^[a-z]+\((?:[^,)]*,){3}\s*([^,)]+)\)$/i.exec(color)?.[1];
+  return alpha !== undefined && (alpha === "none" || parseFloat(alpha) === 0);
+};
+
+/**
+ * The color the browser paints where nothing does: `Canvas` in html's color
+ * scheme, which the page's canvas follows. `Canvas` set on the layer itself
+ * would resolve in the stack's ancestors' scheme, so it is resolved on a probe
+ * in head: in body or next to it, the probe would change what `:last-child`
+ * matches (an animation on it restarts). `!important` keeps author rules on
+ * divs or head from changing it.
+ */
+const canvasColor = () => {
+  const probe = document.createElement("div");
+  const { colorScheme } = getComputedStyle(document.documentElement);
+  probe.style.cssText = `display: none; background: Canvas !important; color-scheme: ${colorScheme} !important`;
+  document.head.append(probe);
+  const color = getComputedStyle(probe).backgroundColor;
+  probe.remove();
+  return color;
+};
+
+/**
+ * The color behind the screens: that of the stack root or its nearest ancestor
+ * that paints one (a theme wrapper, body or html), which shows where a screen
+ * does not cover.
  */
 export const background = (from: HTMLElement) => {
   for (let el: Element | null = from; el; el = el.parentElement) {
     const color = getComputedStyle(el).backgroundColor;
-    if (color && color !== "transparent" && !color.endsWith(", 0)"))
-      return color;
+    if (color && !isTransparent(color)) return color;
   }
-  // The page's own default: white, or dark under `color-scheme: dark`.
-  return "Canvas";
+  return canvasColor();
 };
 
 /**

@@ -224,7 +224,9 @@ describe("slide", () => {
   });
 
   test("a layer with no painted ancestor takes the page's own color", () => {
-    expect(background(document.createElement("div"))).toBe("Canvas");
+    expect(background(document.createElement("div"))).toBe(
+      "rgb(255, 255, 255)",
+    );
   });
 
   test("the rest after a release takes the full duration, however little is left", () => {
